@@ -1,7 +1,7 @@
 [project]
-name = "fastapi-template-server"
+name = "leaf-disease-detection-server"
 version = "0.1.0"
-description = "FastAPI + MongoDB template backend with authentication and modern Python best practices"
+description = "AI-powered leaf disease detection system using Gemini Vision API with FastAPI and MongoDB"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -11,4 +11,6 @@ dependencies = [
     "pydantic-settings>=2.10.1",
     "pyjwt>=2.10.1",
     "pymongo>=4.14.0",
+    "langchain-google-genai>=2.0.8",
+    "pillow>=10.0.0",
 ]
