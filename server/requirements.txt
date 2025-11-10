@@ -7,3 +7,4 @@ bcrypt
 langchain>=0.3.15
 langchain-google-genai>=2.0.8
 langchain-community>=0.3.15
+python-multipart

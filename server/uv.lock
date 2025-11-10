@@ -553,6 +553,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pyjwt" },
     { name = "pymongo" },
+    { name = "python-multipart" },
 ]
 
 [package.metadata]
@@ -565,6 +566,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.10.1" },
     { name = "pyjwt", specifier = ">=2.10.1" },
     { name = "pymongo", specifier = ">=4.14.0" },
+    { name = "python-multipart", specifier = ">=0.0.20" },
 ]
 
 [[package]]
