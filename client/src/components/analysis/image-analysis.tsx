@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { AnalysisService } from '@/lib/analysis-service'
 import { ImageUploadResponse, AnalysisResponse } from '@/types/analysis'
+import { AnalysisResultViewer } from '@/components/analysis/analysis-result-viewer'
 import { Scan, Clock, Bot, AlertCircle, CheckCircle, Upload } from 'lucide-react'
 
 interface ImageAnalysisProps {
@@ -167,38 +168,7 @@ export function ImageAnalysis({ onAnalysisComplete }: ImageAnalysisProps) {
 
       {/* Analysis Results */}
       {analysis && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Bot className="size-5 text-primary" />
-                <CardTitle>Analysis Results</CardTitle>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="size-4" />
-                <span>{new Date(analysis.timestamp).toLocaleString()}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">
-                {analysis.model_used}
-              </Badge>
-              {analysis.confidence && (
-                <Badge variant="secondary">
-                  {analysis.confidence}
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          
-          <CardContent>
-            <div className="prose prose-sm max-w-none">
-              <div className="whitespace-pre-wrap text-foreground">
-                {analysis.analysis}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <AnalysisResultViewer result={analysis} />
       )}
     </div>
   )

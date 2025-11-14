@@ -136,7 +136,11 @@ async def analyze_uploaded_image(
     return AnalysisResponse(
         analysis=result["analysis"],
         model_used=result["model_used"],
-        confidence=result.get("confidence")
+        confidence=result.get("confidence"),
+        analysis_type="image",
+        summary=result.get("summary"),
+        severity=result.get("severity"),
+        timestamp=datetime.utcnow()
     )
 
 
@@ -174,7 +178,10 @@ async def analyze_symptoms(
     
     return AnalysisResponse(
         analysis=result["analysis"],
-        model_used=result["model_used"]
+        model_used=result["model_used"],
+        analysis_type="symptoms",
+        summary=result.get("summary"),
+        timestamp=datetime.utcnow()
     )
 
 
@@ -209,7 +216,9 @@ async def get_care_tips(
     return CareResponse(
         care_tips=result["care_tips"],
         plant_type=result["plant_type"],
-        model_used=result["model_used"]
+        model_used=result["model_used"],
+        care_difficulty=result.get("care_difficulty"),
+        timestamp=datetime.utcnow()
     )
 
 

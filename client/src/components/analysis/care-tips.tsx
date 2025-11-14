@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { AnalysisService } from '@/lib/analysis-service'
 import { CareResponse } from '@/types/analysis'
+import { AnalysisResultViewer } from '@/components/analysis/analysis-result-viewer'
 import { Sprout, Clock, Bot, AlertCircle, Heart, Lightbulb, Copy, Printer } from 'lucide-react'
 
 interface CareTipsProps {
@@ -153,69 +154,49 @@ export function CareTips({ onCareTipsComplete }: CareTipsProps) {
 
       {/* Care Tips Results */}
       {careTips && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Heart className="size-5 text-primary" />
-                <CardTitle>Care Guide</CardTitle>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="size-4" />
-                <span>{new Date(careTips.timestamp).toLocaleString()}</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">
-                {careTips.model_used}
-              </Badge>
-              <Badge variant="secondary">
-                Care Guide
-              </Badge>
-            </div>
-          </CardHeader>
-          
-          <CardContent className="space-y-4">
-            {/* Plant Type Display */}
-            <div className="p-3 bg-muted/50 rounded-lg">
-              <p className="text-sm font-medium text-muted-foreground">Plant:</p>
+        <>
+          {/* Plant Type Display */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Plant Information</CardTitle>
+            </CardHeader>
+            <CardContent>
               <p className="text-lg font-semibold capitalize">{careTips.plant_type}</p>
-            </div>
-
-            <div className="prose prose-sm max-w-none">
-              <div className="whitespace-pre-wrap text-foreground">
-                {careTips.care_tips}
+            </CardContent>
+          </Card>
+          
+          <AnalysisResultViewer result={careTips} title="Care Guide" />
+          
+          {/* Action Buttons */}
+          <Card>
+            <CardFooter className="pt-6">
+              <div className="flex gap-2 w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(careTips.care_tips)
+                  }}
+                  className="flex-1"
+                >
+                  <Copy className="size-4 mr-2" />
+                  Copy Tips
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    window.print()
+                  }}
+                  className="flex-1"
+                >
+                  <Printer className="size-4 mr-2" />
+                  Print Guide
+                </Button>
               </div>
-            </div>
-          </CardContent>
-
-          <CardFooter className="border-t">
-            <div className="flex gap-2 w-full">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  navigator.clipboard?.writeText(careTips.care_tips)
-                }}
-                className="flex-1"
-              >
-                <Copy className="size-4 mr-2" />
-                Copy Tips
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  window.print()
-                }}
-                className="flex-1"
-              >
-                <Printer className="size-4 mr-2" />
-                Print Guide
-              </Button>
-            </div>
-          </CardFooter>
-        </Card>
+            </CardFooter>
+          </Card>
+        </>
       )}
     </div>
   )

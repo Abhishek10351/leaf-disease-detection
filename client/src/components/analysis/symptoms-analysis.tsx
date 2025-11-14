@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { AnalysisService } from '@/lib/analysis-service'
 import { AnalysisResponse } from '@/types/analysis'
+import { AnalysisResultViewer } from '@/components/analysis/analysis-result-viewer'
 import { FileText, Clock, Bot, AlertCircle } from 'lucide-react'
 
 interface SymptomsAnalysisProps {
@@ -138,33 +139,13 @@ export function SymptomsAnalysis({ onAnalysisComplete }: SymptomsAnalysisProps) 
 
       {/* Analysis Results */}
       {analysis && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Bot className="size-5 text-primary" />
-                <CardTitle className="text-lg">Analysis Results</CardTitle>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="size-4" />
-                <span>{new Date(analysis.timestamp).toLocaleString()}</span>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">
-                {analysis.model_used}
-              </Badge>
-              <Badge variant="secondary">
-                Symptoms Analysis
-              </Badge>
-            </div>
-
-            {/* Input Summary */}
-            <div className="p-3 bg-muted/50 rounded-lg space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Analysis Input:</p>
+        <>
+          {/* Input Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Analysis Input</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
               {plantType && (
                 <p className="text-sm"><span className="font-medium">Plant Type:</span> {plantType}</p>
               )}
@@ -177,15 +158,11 @@ export function SymptomsAnalysis({ onAnalysisComplete }: SymptomsAnalysisProps) 
                   }
                 </span>
               </p>
-            </div>
-
-            <div className="prose prose-sm max-w-none">
-              <div className="whitespace-pre-wrap text-foreground">
-                {analysis.analysis}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          
+          <AnalysisResultViewer result={analysis} title="Symptoms Analysis" />
+        </>
       )}
     </div>
   )

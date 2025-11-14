@@ -11,6 +11,18 @@ export interface AnalysisResponse {
   model_used: string;
   confidence?: string;
   timestamp: string;
+  analysis_type: string;
+  summary?: string;
+  severity?: string;
+  // New structured fields
+  plant_identification?: string;
+  primary_issue?: string;
+  immediate_action?: string;
+  treatment?: string;
+  prevention?: string;
+  likely_condition?: string;
+  treatment_steps?: string;
+  what_to_watch?: string;
 }
 
 export interface CareResponse {
@@ -18,6 +30,17 @@ export interface CareResponse {
   plant_type: string;
   model_used: string;
   timestamp: string;
+  care_difficulty?: string;
+  seasonal_care?: string;
+  // New structured fields
+  quick_overview?: string;
+  essential_care?: {
+    light?: string;
+    water?: string;
+    soil?: string;
+  };
+  key_tips?: string[];
+  common_problems?: string[];
 }
 
 export interface ImageAnalysisRequest {
