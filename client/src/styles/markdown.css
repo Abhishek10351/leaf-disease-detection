@@ -1,0 +1,146 @@
+.markdown-viewer {
+  @apply leading-relaxed;
+}
+
+/* Code highlighting overrides for dark mode */
+@media (prefers-color-scheme: dark) {
+  .markdown-viewer .hljs {
+    background-color: hsl(var(--muted)) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  .markdown-viewer .hljs-keyword,
+  .markdown-viewer .hljs-selector-tag,
+  .markdown-viewer .hljs-literal,
+  .markdown-viewer .hljs-section,
+  .markdown-viewer .hljs-link {
+    color: hsl(var(--primary)) !important;
+  }
+  
+  .markdown-viewer .hljs-string,
+  .markdown-viewer .hljs-attr,
+  .markdown-viewer .hljs-symbol,
+  .markdown-viewer .hljs-bullet,
+  .markdown-viewer .hljs-addition {
+    color: hsl(var(--green-600)) !important;
+  }
+  
+  .markdown-viewer .hljs-number,
+  .markdown-viewer .hljs-quote,
+  .markdown-viewer .hljs-comment {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+}
+
+/* Custom markdown elements */
+.markdown-viewer h1,
+.markdown-viewer h2 {
+  @apply scroll-mt-20;
+}
+
+.markdown-viewer h2:first-child,
+.markdown-viewer h1:first-child {
+  @apply mt-0;
+}
+
+.markdown-viewer p:last-child {
+  @apply mb-0;
+}
+
+/* Custom list styling */
+.markdown-viewer ul ul,
+.markdown-viewer ol ul,
+.markdown-viewer ul ol,
+.markdown-viewer ol ol {
+  @apply mt-2 ml-4;
+}
+
+/* Table improvements */
+.markdown-viewer table {
+  @apply w-full text-sm;
+}
+
+.markdown-viewer th {
+  @apply bg-muted/50 font-semibold;
+}
+
+.markdown-viewer tr:nth-child(even) {
+  @apply bg-muted/25;
+}
+
+/* Improved blockquote */
+.markdown-viewer blockquote {
+  @apply bg-muted/20 rounded-r-lg;
+}
+
+/* Better code blocks */
+.markdown-viewer pre {
+  @apply relative;
+}
+
+.markdown-viewer pre code {
+  @apply bg-transparent p-0;
+}
+
+/* Checkbox lists */
+.markdown-viewer input[type="checkbox"] {
+  @apply mr-2 accent-primary;
+}
+
+/* Custom badges for plant analysis */
+.severity-healthy {
+  @apply bg-green-100 text-green-800 border-green-200;
+}
+
+.severity-mild {
+  @apply bg-yellow-100 text-yellow-800 border-yellow-200;
+}
+
+.severity-moderate {
+  @apply bg-orange-100 text-orange-800 border-orange-200;
+}
+
+.severity-severe {
+  @apply bg-red-100 text-red-800 border-red-200;
+}
+
+.difficulty-easy {
+  @apply bg-green-100 text-green-800 border-green-200;
+}
+
+.difficulty-moderate {
+  @apply bg-yellow-100 text-yellow-800 border-yellow-200;
+}
+
+.difficulty-difficult {
+  @apply bg-red-100 text-red-800 border-red-200;
+}
+
+/* Dark mode adjustments */
+.dark .severity-healthy {
+  @apply bg-green-900/30 text-green-400 border-green-800;
+}
+
+.dark .severity-mild {
+  @apply bg-yellow-900/30 text-yellow-400 border-yellow-800;
+}
+
+.dark .severity-moderate {
+  @apply bg-orange-900/30 text-orange-400 border-orange-800;
+}
+
+.dark .severity-severe {
+  @apply bg-red-900/30 text-red-400 border-red-800;
+}
+
+.dark .difficulty-easy {
+  @apply bg-green-900/30 text-green-400 border-green-800;
+}
+
+.dark .difficulty-moderate {
+  @apply bg-yellow-900/30 text-yellow-400 border-yellow-800;
+}
+
+.dark .difficulty-difficult {
+  @apply bg-red-900/30 text-red-400 border-red-800;
+}
