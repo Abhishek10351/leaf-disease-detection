@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Request, Response
 from pydantic import EmailStr, BaseModel, Field
 from datetime import timedelta
-from core.security import create_access_token, verify_password
-from core.config import settings
+from app.core.security import create_access_token, verify_password
+from app.core.config import settings
 import json
 
 router = APIRouter(tags=["authentication"])

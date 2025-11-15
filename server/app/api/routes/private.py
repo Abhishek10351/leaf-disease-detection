@@ -1,6 +1,6 @@
 from fastapi import Request, Response, status, APIRouter
-from models import User
-from core.security import get_password_hash
+from app.models import User
+from app.core.security import get_password_hash
 import json
 
 

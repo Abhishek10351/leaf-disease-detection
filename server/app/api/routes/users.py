@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Request, Response, status
-from models import User
+from app.models import User
 from pymongo.errors import DuplicateKeyError
-from core.security import get_password_hash
-from utils.auth import login_required
+from app.core.security import get_password_hash
+from app.utils.auth import login_required
 import json
 
 router = APIRouter(prefix="/users", tags=["users"])

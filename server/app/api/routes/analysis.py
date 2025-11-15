@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, HTTPException, Request, File, UploadFile
 from fastapi.responses import FileResponse
 from typing import Optional
@@ -7,7 +8,9 @@ import base64
 from pathlib import Path
 import aiofiles
 
-from models.analysis import (
+logger = logging.getLogger(__name__)
+
+from app.models.analysis import (
     ImageUploadResponse,
     ImageAnalysisRequest,
     SymptomsAnalysisRequest, 
@@ -15,7 +18,7 @@ from models.analysis import (
     AnalysisResponse,
     CareResponse
 )
-from llm_core.utils import (
+from app.llm_core.utils import (
     analyze_leaf_image,
     analyze_leaf_symptoms,
     get_plant_care_tips
@@ -131,7 +134,7 @@ async def analyze_uploaded_image(
         await req.app.mongodb["analysis_history"].insert_one(history_data)
     except Exception as e:
         # Log error but don't fail the request if history save fails
-        print(f"Warning: Failed to save analysis history: {str(e)}")
+        logger.warning(f"Failed to save analysis history: {str(e)}")
     
     return AnalysisResponse(
         analysis=result["analysis"],
@@ -174,7 +177,7 @@ async def analyze_symptoms(
         await req.app.mongodb["analysis_history"].insert_one(history_data)
     except Exception as e:
         # Log error but don't fail the request if history save fails
-        print(f"Warning: Failed to save symptoms analysis history: {str(e)}")
+        logger.warning(f"Failed to save symptoms analysis history: {str(e)}")
     
     return AnalysisResponse(
         analysis=result["analysis"],
@@ -211,7 +214,7 @@ async def get_care_tips(
         await req.app.mongodb["analysis_history"].insert_one(history_data)
     except Exception as e:
         # Log error but don't fail the request if history save fails
-        print(f"Warning: Failed to save care tips history: {str(e)}")
+        logger.warning(f"Failed to save care tips history: {str(e)}")
     
     return CareResponse(
         care_tips=result["care_tips"],

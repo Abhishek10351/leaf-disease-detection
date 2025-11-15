@@ -1,7 +1,7 @@
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
-from core.security import verify_token
-from models import User
+from app.core.security import verify_token
+from app.models import User
 
 
 class AuthMiddleware(BaseHTTPMiddleware):

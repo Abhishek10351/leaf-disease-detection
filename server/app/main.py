@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-from db import db
-from api.main import api_router
-import middleware
-from core.config import settings
+from app.db import db
+from app.api.main import api_router
+from app import middleware
+from app.core.config import settings
 
 
 @asynccontextmanager
@@ -28,4 +28,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(api_router)
+app.include_router(api_router, prefix="/api")

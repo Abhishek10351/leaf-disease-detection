@@ -1,6 +1,9 @@
+import logging
 from pymongo import AsyncMongoClient, ASCENDING, DESCENDING
 from fastapi import FastAPI
-from core.config import settings
+from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 async def connect(app: FastAPI) -> None:
@@ -17,9 +20,9 @@ async def connect(app: FastAPI) -> None:
     await mongodb["analysis_history"].create_index([("analysis_type", ASCENDING)])
     await mongodb["analysis_history"].create_index([("image_id", ASCENDING)])
 
-    print(f"Database connected to {settings.MONGODB_DB_NAME}")
+    logger.info(f"Database connected to {settings.MONGODB_DB_NAME}")
 
 
 async def disconnect(app: FastAPI) -> None:
     await app.mongo_client.close()
-    print("Database disconnected")
+    logger.info("Database disconnected")
