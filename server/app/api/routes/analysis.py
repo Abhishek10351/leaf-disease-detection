@@ -13,15 +13,15 @@ logger = logging.getLogger(__name__)
 from app.models.analysis import (
     ImageUploadResponse,
     ImageAnalysisRequest,
-    SymptomsAnalysisRequest, 
+    SymptomsAnalysisRequest,
     PlantCareRequest,
     AnalysisResponse,
-    CareResponse
+    CareResponse,
 )
-from app.llm_core.utils import (
+from ...llm_core.utils import (
     analyze_leaf_image,
     analyze_leaf_symptoms,
-    get_plant_care_tips
+    get_plant_care_tips,
 )
 
 router = APIRouter(prefix="/analysis", tags=["leaf-analysis"])
@@ -95,21 +95,21 @@ async def analyze_uploaded_image(
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-    
+
     if not image_doc:
         raise HTTPException(status_code=404, detail="Image not found")
-    
+
     # Read image file from disk
     file_path = Path(image_doc["file_path"])
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Image file not found on disk")
-    
+
     try:
         # Read and encode image to base64
         async with aiofiles.open(file_path, 'rb') as f:
             file_content = await f.read()
         image_base64 = base64.b64encode(file_content).decode('utf-8')
-        
+
         # Perform analysis
         result = analyze_leaf_image(
             image_base64=image_base64,
@@ -117,7 +117,7 @@ async def analyze_uploaded_image(
         )
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Analysis failed: {str(e)}")
-    
+
     # Save analysis to history
     try:
         history_data = {
@@ -135,15 +135,14 @@ async def analyze_uploaded_image(
     except Exception as e:
         # Log error but don't fail the request if history save fails
         logger.warning(f"Failed to save analysis history: {str(e)}")
-    
+
     return AnalysisResponse(
         analysis=result["analysis"],
-        model_used=result["model_used"],
         confidence=result.get("confidence"),
         analysis_type="image",
         summary=result.get("summary"),
         severity=result.get("severity"),
-        timestamp=datetime.utcnow()
+        timestamp=datetime.now()
     )
 
 
@@ -161,7 +160,7 @@ async def analyze_symptoms(
         )
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Analysis failed: {str(e)}")
-    
+
     # Save to history
     try:
         history_data = {
@@ -178,10 +177,9 @@ async def analyze_symptoms(
     except Exception as e:
         # Log error but don't fail the request if history save fails
         logger.warning(f"Failed to save symptoms analysis history: {str(e)}")
-    
+
     return AnalysisResponse(
         analysis=result["analysis"],
-        model_used=result["model_used"],
         analysis_type="symptoms",
         summary=result.get("summary"),
         timestamp=datetime.utcnow()
@@ -199,7 +197,7 @@ async def get_care_tips(
         result = get_plant_care_tips(plant_type=request.plant_type)
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Failed to get care tips: {str(e)}")
-    
+
     # Save to history
     try:
         history_data = {
@@ -215,11 +213,10 @@ async def get_care_tips(
     except Exception as e:
         # Log error but don't fail the request if history save fails
         logger.warning(f"Failed to save care tips history: {str(e)}")
-    
+
     return CareResponse(
         care_tips=result["care_tips"],
         plant_type=result["plant_type"],
-        model_used=result["model_used"],
         care_difficulty=result.get("care_difficulty"),
         timestamp=datetime.utcnow()
     )

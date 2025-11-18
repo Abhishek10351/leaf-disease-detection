@@ -1,5 +1,5 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
-from core.config import settings
+from app.core.config import settings
 
 GEMINI_API_KEY = settings.GEMINI_API_KEY
 
