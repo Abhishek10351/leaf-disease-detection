@@ -14,15 +14,6 @@ export interface AnalysisResponse {
   analysis_type: string;
   summary?: string;
   severity?: string;
-  // New structured fields
-  plant_identification?: string;
-  primary_issue?: string;
-  immediate_action?: string;
-  treatment?: string;
-  prevention?: string;
-  likely_condition?: string;
-  treatment_steps?: string;
-  what_to_watch?: string;
 }
 
 export interface CareResponse {
