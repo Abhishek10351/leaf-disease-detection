@@ -6,10 +6,14 @@ from app.models import User
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # Skip auth for these paths
-        skip_paths = ["/login", "/users/create", "/docs", "/redoc", "/openapi.json"]
-        if request.url.path in skip_paths:
-            return await call_next(request)
+        # Paths that don't need any authentication check
+        public_paths = ["/login", "/users/create", "/docs", "/redoc", "/openapi.json"]
+        
+        optional_auth_paths = ["/analysis"]
+        
+        is_public = request.url.path in public_paths
+        is_optional_auth = any(request.url.path.startswith(path) for path in optional_auth_paths)
+         
         auth_token = request.headers.get("Authorization")
         user = None
 

@@ -15,8 +15,9 @@ from app.models.analysis import (
     ImageAnalysisRequest,
     SymptomsAnalysisRequest,
     PlantCareRequest,
-    AnalysisResponse,
-    CareResponse,
+    ImageAnalysisLLMResponse,
+    SymptomsAnalysisLLMResponse,
+    PlantCareLLMResponse,
 )
 from ...llm_core.utils import (
     analyze_leaf_image,
@@ -51,6 +52,11 @@ async def upload_image(
     file_extension = Path(file.filename).suffix.lower() if file.filename else '.jpg'
     file_path = UPLOAD_DIR / f"{image_id}{file_extension}"
     
+    # Get user_id if logged in
+    user_id = None
+    if hasattr(req.state, 'user') and req.state.user:
+        user_id = req.state.user.email
+    
     try:
         # Save file to disk
         async with aiofiles.open(file_path, 'wb') as f:
@@ -63,6 +69,7 @@ async def upload_image(
             "file_size": len(file_content),
             "content_type": file.content_type,
             "file_path": str(file_path),
+            "user_id": user_id,
             "uploaded_at": datetime.now()
         }
         
@@ -82,7 +89,7 @@ async def upload_image(
     )
 
 
-@router.post("/analyze", response_model=AnalysisResponse)
+@router.post("/analyze", response_model=ImageAnalysisLLMResponse)
 async def analyze_uploaded_image(
     req: Request,
     request: ImageAnalysisRequest
@@ -111,24 +118,27 @@ async def analyze_uploaded_image(
         image_base64 = base64.b64encode(file_content).decode('utf-8')
 
         # Perform analysis
-        result = analyze_leaf_image(
-            image_base64=image_base64,
-            additional_context="Please analyze this plant leaf image and provide comprehensive diagnosis."
-        )
+        result = analyze_leaf_image(image_base64=image_base64)
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Analysis failed: {str(e)}")
 
+    # Get user_id if logged in
+    user_id = None
+    if hasattr(req.state, 'user') and req.state.user:
+        user_id = req.state.user.email
+    
     # Save analysis to history
     try:
         history_data = {
             "_id": str(ObjectId()),
             "analysis_type": "image",
             "image_id": request.image_id,
+            "user_id": user_id,
             "request_data": {
                 "image_id": request.image_id,
                 "filename": image_doc["filename"]
             },
-            "response_data": result,
+            "response_data": result.model_dump(),
             "timestamp": datetime.now()
         }
         await req.app.mongodb["analysis_history"].insert_one(history_data)
@@ -136,17 +146,10 @@ async def analyze_uploaded_image(
         # Log error but don't fail the request if history save fails
         logger.warning(f"Failed to save analysis history: {str(e)}")
 
-    return AnalysisResponse(
-        analysis=result["analysis"],
-        confidence=result.get("confidence"),
-        analysis_type="image",
-        summary=result.get("summary"),
-        severity=result.get("severity"),
-        timestamp=datetime.now()
-    )
+    return result
 
 
-@router.post("/symptoms", response_model=AnalysisResponse)
+@router.post("/symptoms", response_model=SymptomsAnalysisLLMResponse)
 async def analyze_symptoms(
     req: Request,
     request: SymptomsAnalysisRequest
@@ -161,16 +164,22 @@ async def analyze_symptoms(
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Analysis failed: {str(e)}")
 
+    # Get user_id if logged in
+    user_id = None
+    if hasattr(req.state, 'user') and req.state.user:
+        user_id = req.state.user.email
+    
     # Save to history
     try:
         history_data = {
             "_id": str(ObjectId()),
             "analysis_type": "symptoms",
+            "user_id": user_id,
             "request_data": {
                 "symptoms_description": request.symptoms_description,
                 "plant_type": request.plant_type
             },
-            "response_data": result,
+            "response_data": result.model_dump(),
             "timestamp": datetime.now()
         }
         await req.app.mongodb["analysis_history"].insert_one(history_data)
@@ -178,15 +187,10 @@ async def analyze_symptoms(
         # Log error but don't fail the request if history save fails
         logger.warning(f"Failed to save symptoms analysis history: {str(e)}")
 
-    return AnalysisResponse(
-        analysis=result["analysis"],
-        analysis_type="symptoms",
-        summary=result.get("summary"),
-        timestamp=datetime.utcnow()
-    )
+    return result
 
 
-@router.post("/care-tips", response_model=CareResponse)
+@router.post("/care-tips", response_model=PlantCareLLMResponse)
 async def get_care_tips(
     req: Request,
     request: PlantCareRequest
@@ -198,15 +202,21 @@ async def get_care_tips(
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Failed to get care tips: {str(e)}")
 
+    # Get user_id if logged in
+    user_id = None
+    if hasattr(req.state, 'user') and req.state.user:
+        user_id = req.state.user.email
+    
     # Save to history
     try:
         history_data = {
             "_id": str(ObjectId()),
             "analysis_type": "care",
+            "user_id": user_id,
             "request_data": {
                 "plant_type": request.plant_type
             },
-            "response_data": result,
+            "response_data": result.model_dump(),
             "timestamp": datetime.now()
         }
         await req.app.mongodb["analysis_history"].insert_one(history_data)
@@ -214,12 +224,7 @@ async def get_care_tips(
         # Log error but don't fail the request if history save fails
         logger.warning(f"Failed to save care tips history: {str(e)}")
 
-    return CareResponse(
-        care_tips=result["care_tips"],
-        plant_type=result["plant_type"],
-        care_difficulty=result.get("care_difficulty"),
-        timestamp=datetime.utcnow()
-    )
+    return result
 
 
 @router.get("/images")
@@ -229,10 +234,28 @@ async def get_uploaded_images(
     skip: int = 0
 ):
     """Get list of uploaded images"""
+    # Get user_id if logged in
+    user_id = None
+    if hasattr(req.state, 'user') and req.state.user:
+        user_id = req.state.user.email
+    
     try:
+        # Build query filter - show only user's images if logged in, blank if not
+        query_filter = {}
+        if user_id:
+            query_filter["user_id"] = user_id
+        else:
+            # Return empty list if not logged in
+            return {
+                "images": [],
+                "total": 0,
+                "skip": skip,
+                "limit": limit
+            }
+        
         # Get images metadata from database
         images_cursor = req.app.mongodb["uploaded_images"].find(
-            {}
+            query_filter
         ).sort("uploaded_at", -1).skip(skip).limit(limit)
         
         images_list = await images_cursor.to_list(length=limit)
@@ -405,9 +428,25 @@ async def get_analysis_history(
     analysis_type: Optional[str] = None
 ):
     """Get analysis history"""
+    # Get user_id if logged in
+    user_id = None
+    if hasattr(req.state, 'user') and req.state.user:
+        user_id = req.state.user.email
+    
     try:
-        # Build query filter
+        # Build query filter - show only user's history if logged in, blank if not
         query_filter = {}
+        if user_id:
+            query_filter["user_id"] = user_id
+        else:
+            # Return empty history if not logged in
+            return {
+                "history": [],
+                "total": 0,
+                "skip": skip,
+                "limit": limit
+            }
+        
         if analysis_type:
             query_filter["analysis_type"] = analysis_type
         
@@ -453,11 +492,21 @@ async def get_analysis_detail(
     analysis_id: str
 ):
     """Get detailed analysis result by ID"""
+    # Get user_id if logged in
+    user_id = None
+    if hasattr(req.state, 'user') and req.state.user:
+        user_id = req.state.user.email
+    
     try:
+        # Build query - ensure user can only access their own history
+        query_filter = {"_id": analysis_id}
+        if user_id:
+            query_filter["user_id"] = user_id
+        else:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
         # Get analysis from database
-        analysis = await req.app.mongodb["analysis_history"].find_one({
-            "_id": analysis_id
-        })
+        analysis = await req.app.mongodb["analysis_history"].find_one(query_filter)
         
         if not analysis:
             raise HTTPException(status_code=404, detail="Analysis not found")
@@ -482,11 +531,21 @@ async def delete_analysis(
     analysis_id: str
 ):
     """Delete an analysis from history"""
+    # Get user_id if logged in
+    user_id = None
+    if hasattr(req.state, 'user') and req.state.user:
+        user_id = req.state.user.email
+    
     try:
+        # Build query - ensure user can only delete their own history
+        query_filter = {"_id": analysis_id}
+        if user_id:
+            query_filter["user_id"] = user_id
+        else:
+            raise HTTPException(status_code=401, detail="Authentication required")
+        
         # Delete analysis
-        result = await req.app.mongodb["analysis_history"].delete_one({
-            "_id": analysis_id
-        })
+        result = await req.app.mongodb["analysis_history"].delete_one(query_filter)
         
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Analysis not found")
