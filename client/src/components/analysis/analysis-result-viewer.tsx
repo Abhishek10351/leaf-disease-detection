@@ -10,17 +10,18 @@ import {
 } from "@/components/ui/card";
 import { MarkdownViewer } from "@/components/ui/markdown-viewer";
 import {
-    Clock,
     Bot,
     AlertCircle,
     CheckCircle,
     AlertTriangle,
     XCircle,
 } from "lucide-react";
-import { AnalysisResponse, CareResponse } from "@/types/analysis";
+import { ImageAnalysisResponse, SymptomsAnalysisResponse, PlantCareResponse } from "@/types/analysis";
+
+type AnalysisResult = ImageAnalysisResponse | SymptomsAnalysisResponse | PlantCareResponse;
 
 interface AnalysisResultViewerProps {
-    result: AnalysisResponse | CareResponse;
+    result: AnalysisResult;
     title?: string;
     showMetadata?: boolean;
 }
@@ -68,16 +69,26 @@ const getDifficultyColor = (difficulty?: string) => {
     }
 };
 
+const isImageAnalysis = (result: AnalysisResult): result is ImageAnalysisResponse => {
+    return 'plant_identification' in result;
+};
+
+const isSymptomsAnalysis = (result: AnalysisResult): result is SymptomsAnalysisResponse => {
+    return 'likely_condition' in result;
+};
+
+const isPlantCare = (result: AnalysisResult): result is PlantCareResponse => {
+    return 'care_difficulty' in result;
+};
+
 export function AnalysisResultViewer({
     result,
     title,
     showMetadata = true,
 }: AnalysisResultViewerProps) {
-    const isAnalysis = "analysis" in result;
-    const isCare = "care_tips" in result;
-
-    const content = isAnalysis ? result.analysis : result.care_tips;
-    const analysisType = isAnalysis ? result.analysis_type : "care";
+    const detailedContent = isImageAnalysis(result) || isSymptomsAnalysis(result) 
+        ? result.detailed_analysis 
+        : result.detailed_guide;
 
     return (
         <Card className="w-full">
@@ -87,55 +98,59 @@ export function AnalysisResultViewer({
                         <Bot className="h-5 w-5 text-primary" />
                         <CardTitle className="text-lg">
                             {title ||
-                                (isAnalysis
-                                    ? "Analysis Results"
-                                    : "Care Instructions")}
+                                (isPlantCare(result)
+                                    ? "Care Instructions"
+                                    : "Analysis Results")}
                         </CardTitle>
                     </div>
-                    {showMetadata && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock className="h-4 w-4" />
-                            {new Date(result.timestamp).toLocaleString()}
-                        </div>
-                    )}
                 </div>
-
-                {isAnalysis && result.summary && (
+                {(isImageAnalysis(result) || isSymptomsAnalysis(result)) && (
                     <CardDescription className="text-base">
-                        {result.summary}
+                        {result.quick_summary}
                     </CardDescription>
                 )}
-
-                {isCare && result.quick_overview && (
+                {isPlantCare(result) && (
                     <CardDescription className="text-base">
                         {result.quick_overview}
                     </CardDescription>
-                )}                {showMetadata && (
+                )}
+                {showMetadata && (
                     <div className="flex flex-wrap items-center gap-2 mt-3">
-                        <Badge variant="outline" className="text-xs">
-                            {result.model_used}
-                        </Badge>
-
-                        <Badge
-                            variant="secondary"
-                            className="text-xs capitalize"
-                        >
-                            {analysisType}
-                        </Badge>
-
-                        {isAnalysis && result.severity && (
-                            <Badge
-                                variant="outline"
-                                className={`text-xs flex items-center gap-1 ${getSeverityColor(
-                                    result.severity
-                                )}`}
-                            >
-                                {getSeverityIcon(result.severity)}
-                                {result.severity}
-                            </Badge>
+                        {isImageAnalysis(result) && (
+                            <>
+                                <Badge
+                                    variant="outline"
+                                    className={`text-xs flex items-center gap-1 ${getSeverityColor(
+                                        result.health_status
+                                    )}`}
+                                >
+                                    {getSeverityIcon(result.health_status)}
+                                    {result.health_status}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                    {result.confidence}
+                                </Badge>
+                            </>
                         )}
 
-                        {isCare && result.care_difficulty && (
+                        {isSymptomsAnalysis(result) && (
+                            <>
+                                <Badge
+                                    variant="outline"
+                                    className={`text-xs flex items-center gap-1 ${getSeverityColor(
+                                        result.severity
+                                    )}`}
+                                >
+                                    {getSeverityIcon(result.severity)}
+                                    {result.severity}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                    {result.confidence}
+                                </Badge>
+                            </>
+                        )}
+
+                        {isPlantCare(result) && (
                             <Badge
                                 variant="outline"
                                 className={`text-xs ${getDifficultyColor(
@@ -145,154 +160,137 @@ export function AnalysisResultViewer({
                                 {result.care_difficulty} Care
                             </Badge>
                         )}
-
-                        {isAnalysis && result.confidence && (
-                            <Badge variant="outline" className="text-xs">
-                                {result.confidence}
-                            </Badge>
-                        )}
-
-                        {isCare && result.plant_type && (
-                            <Badge
-                                variant="outline"
-                                className="text-xs capitalize"
-                            >
-                                {result.plant_type}
-                            </Badge>
-                        )}
                     </div>
                 )}
             </CardHeader>
 
             <CardContent className="space-y-6">
-                {/* Quick Overview for Analysis */}
-                {isAnalysis && (
+                {/* Image Analysis Sections */}
+                {isImageAnalysis(result) && (
                     <div className="space-y-4">
-                        {(result.plant_identification ||
-                            result.primary_issue ||
-                            result.likely_condition) && (
-                            <div className="grid gap-3">
-                                {result.plant_identification && (
-                                    <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                                        <span className="text-sm font-medium text-muted-foreground">
-                                            Plant:
-                                        </span>
-                                        <span className="text-sm">
-                                            {result.plant_identification}
-                                        </span>
-                                    </div>
-                                )}
-                                {(result.primary_issue ||
-                                    result.likely_condition) && (
-                                    <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                                        <span className="text-sm font-medium text-muted-foreground">
-                                            Issue:
-                                        </span>
-                                        <span className="text-sm">
-                                            {result.primary_issue ||
-                                                result.likely_condition}
-                                        </span>
-                                    </div>
-                                )}
+                        <div className="grid gap-3">
+                            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                                <span className="text-sm font-medium text-muted-foreground">
+                                    Plant:
+                                </span>
+                                <span className="text-sm">
+                                    {result.plant_identification}
+                                </span>
                             </div>
-                        )}
+                            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                                <span className="text-sm font-medium text-muted-foreground">
+                                    Issue:
+                                </span>
+                                <span className="text-sm">
+                                    {result.primary_issue}
+                                </span>
+                            </div>
+                        </div>
 
-                        {result.immediate_action && (
-                            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                                <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-3">
-                                    🚨 Immediate Action Required
-                                </h4>
-                                <div className="text-sm text-yellow-700 dark:text-yellow-300 whitespace-pre-line leading-relaxed">
-                                    {result.immediate_action}
-                                </div>
+                        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                            <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-3">
+                                🚨 Immediate Action Required
+                            </h4>
+                            <div className="text-sm text-yellow-700 dark:text-yellow-300 whitespace-pre-line leading-relaxed">
+                                {result.immediate_action}
                             </div>
-                        )}
+                        </div>
 
-                        {(result.treatment || result.treatment_steps) && (
-                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-3">
-                                    💊 Treatment Plan
-                                </h4>
-                                <div className="text-sm text-blue-700 dark:text-blue-300 whitespace-pre-line leading-relaxed">
-                                    {result.treatment || result.treatment_steps}
-                                </div>
+                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                            <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-3">
+                                💊 Treatment Plan
+                            </h4>
+                            <div className="text-sm text-blue-700 dark:text-blue-300 whitespace-pre-line leading-relaxed">
+                                {result.treatment}
                             </div>
-                        )}
+                        </div>
 
-                        {result.prevention && (
-                            <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                                <h4 className="text-sm font-semibold text-green-800 dark:text-green-200 mb-3">
-                                    🛡️ Prevention Strategies
-                                </h4>
-                                <div className="text-sm text-green-700 dark:text-green-300 whitespace-pre-line leading-relaxed">
-                                    {result.prevention}
-                                </div>
+                        <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                            <h4 className="text-sm font-semibold text-green-800 dark:text-green-200 mb-3">
+                                🛡️ Prevention Strategies
+                            </h4>
+                            <div className="text-sm text-green-700 dark:text-green-300 whitespace-pre-line leading-relaxed">
+                                {result.prevention}
                             </div>
-                        )}
-
-                        {result.what_to_watch && (
-                            <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-                                <h4 className="text-sm font-semibold text-purple-800 dark:text-purple-200 mb-3">
-                                    👀 What to Monitor
-                                </h4>
-                                <div className="text-sm text-purple-700 dark:text-purple-300 whitespace-pre-line leading-relaxed">
-                                    {result.what_to_watch}
-                                </div>
-                            </div>
-                        )}
+                        </div>
                     </div>
                 )}
 
-                {/* Quick Overview for Care Tips */}
-                {isCare && (
+                {/* Symptoms Analysis Sections */}
+                {isSymptomsAnalysis(result) && (
                     <div className="space-y-4">
-                        {result.quick_overview && (
-                            <div className="p-3 bg-muted/50 rounded-lg">
-                                <p className="text-sm">
-                                    {result.quick_overview}
-                                </p>
-                            </div>
-                        )}
+                        <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+                            <span className="text-sm font-medium text-muted-foreground">
+                                Likely Condition:
+                            </span>
+                            <span className="text-sm">
+                                {result.likely_condition}
+                            </span>
+                        </div>
 
-                        {result.essential_care && (
-                            <div className="space-y-4">
-                                <h4 className="text-sm font-semibold">
-                                    🌱 Essential Care Requirements
-                                </h4>
-                                <div className="grid gap-4">
-                                    {result.essential_care.light && (
-                                        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                                            <div className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">
-                                                ☀️ Light Requirements
-                                            </div>
-                                            <div className="text-sm text-amber-700 dark:text-amber-300 leading-relaxed">
-                                                {result.essential_care.light}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {result.essential_care.water && (
-                                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                            <div className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                                                💧 Watering Guidelines
-                                            </div>
-                                            <div className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
-                                                {result.essential_care.water}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {result.essential_care.soil && (
-                                        <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                                            <div className="text-sm font-semibold text-green-800 dark:text-green-200 mb-2">
-                                                🌿 Soil Requirements
-                                            </div>
-                                            <div className="text-sm text-green-700 dark:text-green-300 leading-relaxed">
-                                                {result.essential_care.soil}
-                                            </div>
-                                        </div>
-                                    )}
+                        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                            <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-3">
+                                🚨 Immediate Action Required
+                            </h4>
+                            <div className="text-sm text-yellow-700 dark:text-yellow-300 whitespace-pre-line leading-relaxed">
+                                {result.immediate_action}
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                            <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-3">
+                                💊 Treatment Steps
+                            </h4>
+                            <div className="text-sm text-blue-700 dark:text-blue-300 whitespace-pre-line leading-relaxed">
+                                {result.treatment_steps}
+                            </div>
+                        </div>
+
+                        <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                            <h4 className="text-sm font-semibold text-purple-800 dark:text-purple-200 mb-3">
+                                👀 What to Monitor
+                            </h4>
+                            <div className="text-sm text-purple-700 dark:text-purple-300 whitespace-pre-line leading-relaxed">
+                                {result.what_to_watch}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Plant Care Sections */}
+                {isPlantCare(result) && (
+                    <div className="space-y-4">
+                        <div className="space-y-4">
+                            <h4 className="text-sm font-semibold">
+                                🌱 Essential Care Requirements
+                            </h4>
+                            <div className="grid gap-4">
+                                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                                    <div className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">
+                                        ☀️ Light Requirements
+                                    </div>
+                                    <div className="text-sm text-amber-700 dark:text-amber-300 leading-relaxed">
+                                        {result.essential_care.light}
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                    <div className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                                        💧 Watering Guidelines
+                                    </div>
+                                    <div className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+                                        {result.essential_care.water}
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                                    <div className="text-sm font-semibold text-green-800 dark:text-green-200 mb-2">
+                                        🌿 Soil Requirements
+                                    </div>
+                                    <div className="text-sm text-green-700 dark:text-green-300 leading-relaxed">
+                                        {result.essential_care.soil}
+                                    </div>
                                 </div>
                             </div>
-                        )}
+                        </div>
 
                         {result.key_tips && result.key_tips.length > 0 && (
                             <div className="space-y-3">
@@ -314,28 +312,25 @@ export function AnalysisResultViewer({
                             </div>
                         )}
 
-                        {result.common_problems &&
-                            result.common_problems.length > 0 && (
+                        {result.common_problems && result.common_problems.length > 0 && (
+                            <div className="space-y-3">
+                                <h4 className="text-sm font-semibold">
+                                    ⚠️ Common Problems & Solutions
+                                </h4>
                                 <div className="space-y-3">
-                                    <h4 className="text-sm font-semibold">
-                                        ⚠️ Common Problems & Solutions
-                                    </h4>
-                                    <div className="space-y-3">
-                                        {result.common_problems.map(
-                                            (problem, index) => (
-                                                <div
-                                                    key={index}
-                                                    className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-                                                >
-                                                    <div className="text-sm text-red-800 dark:text-red-200 leading-relaxed">
-                                                        {problem}
-                                                    </div>
-                                                </div>
-                                            )
-                                        )}
-                                    </div>
+                                    {result.common_problems.map((problem, index) => (
+                                        <div
+                                            key={index}
+                                            className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                                        >
+                                            <div className="text-sm text-red-800 dark:text-red-200 leading-relaxed">
+                                                {problem}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                            )}
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -345,7 +340,7 @@ export function AnalysisResultViewer({
                         Detailed Analysis
                     </h4>
                     <MarkdownViewer
-                        content={content}
+                        content={detailedContent}
                         className="prose prose-sm max-w-none"
                     />
                 </div>

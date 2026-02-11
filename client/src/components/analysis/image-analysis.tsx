@@ -8,12 +8,12 @@ import { Loader } from '@/components/ui/loader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { AnalysisService } from '@/lib/analysis-service'
-import { ImageUploadResponse, AnalysisResponse } from '@/types/analysis'
+import { ImageUploadResponse, ImageAnalysisResponse } from '@/types/analysis'
 import { AnalysisResultViewer } from '@/components/analysis/analysis-result-viewer'
 import { Scan, Clock, Bot, AlertCircle, CheckCircle, Upload } from 'lucide-react'
 
 interface ImageAnalysisProps {
-  onAnalysisComplete?: (analysis: AnalysisResponse) => void
+  onAnalysisComplete?: (analysis: ImageAnalysisResponse) => void
 }
 
 export function ImageAnalysis({ onAnalysisComplete }: ImageAnalysisProps) {
@@ -21,7 +21,7 @@ export function ImageAnalysis({ onAnalysisComplete }: ImageAnalysisProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [uploadedImage, setUploadedImage] = useState<ImageUploadResponse | null>(null)
-  const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null)
+  const [analysis, setAnalysis] = useState<ImageAnalysisResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleUpload = async () => {

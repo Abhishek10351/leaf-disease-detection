@@ -2,8 +2,9 @@ import { AxiosError } from 'axios';
 import api from '@/app/utils/api';
 import {
   ImageUploadResponse,
-  AnalysisResponse,
-  CareResponse,
+  ImageAnalysisResponse,
+  SymptomsAnalysisResponse,
+  PlantCareResponse,
   ImageAnalysisRequest,
   SymptomsAnalysisRequest,
   PlantCareRequest,
@@ -37,9 +38,9 @@ export class AnalysisService {
   /**
    * Analyze an uploaded image by ID
    */
-  static async analyzeImage(request: ImageAnalysisRequest): Promise<AnalysisResponse> {
+  static async analyzeImage(request: ImageAnalysisRequest): Promise<ImageAnalysisResponse> {
     try {
-      const response = await api.post<AnalysisResponse>('/analysis/analyze', request);
+      const response = await api.post<ImageAnalysisResponse>('/analysis/analyze', request);
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError;
@@ -51,9 +52,9 @@ export class AnalysisService {
   /**
    * Analyze symptoms without an image
    */
-  static async analyzeSymptoms(request: SymptomsAnalysisRequest): Promise<AnalysisResponse> {
+  static async analyzeSymptoms(request: SymptomsAnalysisRequest): Promise<SymptomsAnalysisResponse> {
     try {
-      const response = await api.post<AnalysisResponse>('/analysis/symptoms', request);
+      const response = await api.post<SymptomsAnalysisResponse>('/analysis/symptoms', request);
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError;
@@ -65,9 +66,9 @@ export class AnalysisService {
   /**
    * Get care tips for a plant type
    */
-  static async getCareTips(request: PlantCareRequest): Promise<CareResponse> {
+  static async getCareTips(request: PlantCareRequest): Promise<PlantCareResponse> {
     try {
-      const response = await api.post<CareResponse>('/analysis/care-tips', request);
+      const response = await api.post<PlantCareResponse>('/analysis/care-tips', request);
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError;

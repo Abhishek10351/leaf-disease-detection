@@ -10,19 +10,19 @@ import { Loader } from '@/components/ui/loader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { AnalysisService } from '@/lib/analysis-service'
-import { AnalysisResponse } from '@/types/analysis'
+import { SymptomsAnalysisResponse } from '@/types/analysis'
 import { AnalysisResultViewer } from '@/components/analysis/analysis-result-viewer'
 import { FileText, Clock, Bot, AlertCircle } from 'lucide-react'
 
 interface SymptomsAnalysisProps {
-  onAnalysisComplete?: (analysis: AnalysisResponse) => void
+  onAnalysisComplete?: (analysis: SymptomsAnalysisResponse) => void
 }
 
 export function SymptomsAnalysis({ onAnalysisComplete }: SymptomsAnalysisProps) {
   const [symptomsDescription, setSymptomsDescription] = useState('')
   const [plantType, setPlantType] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null)
+  const [analysis, setAnalysis] = useState<SymptomsAnalysisResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleAnalyze = async () => {

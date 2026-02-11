@@ -7,7 +7,7 @@ const HomePage = async () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
             {/* Hero Section */}
-            <div className="container mx-auto px-4 py-16">
+            <div className="container mx-auto px-4 py-16 pt-20 mt-8">
                 <div className="text-center space-y-8 max-w-4xl mx-auto">
                     <div className="flex items-center justify-center gap-3 mb-8">
                         <div className="flex items-center justify-center size-16 bg-primary text-primary-foreground rounded-2xl">

@@ -9,12 +9,12 @@ import { Loader } from '@/components/ui/loader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { AnalysisService } from '@/lib/analysis-service'
-import { CareResponse } from '@/types/analysis'
+import { PlantCareResponse } from '@/types/analysis'
 import { AnalysisResultViewer } from '@/components/analysis/analysis-result-viewer'
 import { Sprout, Clock, Bot, AlertCircle, Heart, Lightbulb, Copy, Printer } from 'lucide-react'
 
 interface CareTipsProps {
-  onCareTipsComplete?: (tips: CareResponse) => void
+  onCareTipsComplete?: (tips: PlantCareResponse) => void
 }
 
 const COMMON_PLANTS = [
@@ -26,7 +26,7 @@ const COMMON_PLANTS = [
 export function CareTips({ onCareTipsComplete }: CareTipsProps) {
   const [plantType, setPlantType] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [careTips, setCareTips] = useState<CareResponse | null>(null)
+  const [careTips, setCareTips] = useState<PlantCareResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const handleGetTips = async () => {
