@@ -142,11 +142,12 @@ class RAGWorkflow:
     
     async def _generate_analysis(self, state: AnalysisState) -> AnalysisState:
         """
-        Step 3: Generate initial analysis (using Gemini with optional context).
+        Step 3: Generate initial analysis (using OpenRouter text model with optional context).
         """
         print("Step 3: Generating analysis...")
-        
-        from app.llm_core import analyze_leaf_image, analyze_leaf_symptoms
+
+        from app.llm_core import get_leaf_analysis
+        leaf_analysis = get_leaf_analysis()
         
         # Build enhanced prompt with context if available
         context_prompt = ""
@@ -156,11 +157,11 @@ class RAGWorkflow:
         try:
             # Call appropriate analysis function
             if state.analysis_type == "symptoms":
-                # For symptoms, enhance the analysis request
+                # For symptoms, enhance the analysis request with RAG context
                 enhanced_description = f"{state.disease_description}{context_prompt}"
-                analysis = await analyze_leaf_symptoms(
+                analysis = leaf_analysis.analyze_leaf_symptoms(
                     symptoms_description=enhanced_description,
-                    plant_type=state.plant_type
+                    plant_type=state.plant_type or ""
                 )
             else:
                 # For images, context would be included in post-processing

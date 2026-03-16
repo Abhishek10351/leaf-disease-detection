@@ -33,3 +33,11 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
+
+
+def get_current_user(token: str) -> dict | None:
+    payload = verify_token(token)
+    if payload is None:
+        return None
+    return {"username": payload.get("sub")}
+

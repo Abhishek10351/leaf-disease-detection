@@ -1,19 +1,19 @@
-from typing import Optional
-from .gemini_model import gemini_vision_model
+from .model_selector import get_text_model, get_vision_model
 from app.models.analysis import ImageAnalysisLLMResponse, SymptomsAnalysisLLMResponse, PlantCareLLMResponse
 from langchain_core.messages import HumanMessage
 
 
 class LeafAnalysisUtils:
     """Utility class for leaf analysis operations."""
-    
+
     def __init__(self):
         """Initialize the LeafAnalysisUtils."""
-        pass
+        self._text_model = get_text_model()
+        self._vision_model = get_vision_model()
     
     def analyze_leaf_image(self, image_base64: str) -> ImageAnalysisLLMResponse:
         """
-        Analyze a leaf image for disease detection using Gemini Vision.
+        Analyze a leaf image for disease detection using OpenRouter vision.
         
         Args:
             image_base64: Base64 encoded image data
@@ -24,8 +24,8 @@ class LeafAnalysisUtils:
         Raises:
             Exception: If analysis fails
         """
-        # Create structured output model
-        structured_model = gemini_vision_model.with_structured_output(ImageAnalysisLLMResponse)
+        # Use OpenRouter vision model.
+        structured_model = self._vision_model.with_structured_output(ImageAnalysisLLMResponse)
         
         # Create the analysis prompt
         analysis_prompt = "You are an expert plant pathologist. Analyze this leaf image and provide a comprehensive diagnosis."
@@ -41,7 +41,7 @@ class LeafAnalysisUtils:
             ]
         )
 
-        # Get structured analysis from Gemini
+        # Get structured analysis
         analysis_data = structured_model.invoke([message])
         
         return analysis_data
@@ -62,13 +62,13 @@ class LeafAnalysisUtils:
             Exception: If analysis fails
         """
         # Create structured output model
-        structured_model = gemini_vision_model.with_structured_output(SymptomsAnalysisLLMResponse)
+        structured_model = self._text_model.with_structured_output(SymptomsAnalysisLLMResponse)
         
         plant_context = f"Plant type: {plant_type}\n" if plant_type else ""
         
         analysis_prompt = f"You are an expert plant pathologist. Analyze these symptoms and provide a comprehensive diagnosis.\n\n{plant_context}Symptoms: {symptoms_description}"
 
-        # Get structured analysis from Gemini
+        # Get structured analysis
         analysis_data = structured_model.invoke(analysis_prompt)
         
         return analysis_data
@@ -88,11 +88,11 @@ class LeafAnalysisUtils:
             Exception: If getting care tips fails
         """
         # Create structured output model
-        structured_model = gemini_vision_model.with_structured_output(PlantCareLLMResponse)
+        structured_model = self._text_model.with_structured_output(PlantCareLLMResponse)
         
         care_prompt = f"Provide comprehensive care guidelines for {plant_type}."
 
-        # Get structured care tips from Gemini
+        # Get structured care tips
         care_data = structured_model.invoke(care_prompt)
         
         return care_data

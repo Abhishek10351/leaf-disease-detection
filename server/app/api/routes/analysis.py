@@ -19,11 +19,12 @@ from app.models.analysis import (
     SymptomsAnalysisLLMResponse,
     PlantCareLLMResponse,
 )
-from ...llm_core.utils import (
-    analyze_leaf_image,
-    analyze_leaf_symptoms,
-    get_plant_care_tips,
-)
+from app.llm_core import get_leaf_analysis
+
+
+def _get_leaf_analysis():
+    """Return cached analysis service instance."""
+    return get_leaf_analysis()
 
 router = APIRouter(prefix="/analysis", tags=["leaf-analysis"])
 
@@ -118,7 +119,7 @@ async def analyze_uploaded_image(
         image_base64 = base64.b64encode(file_content).decode('utf-8')
 
         # Perform analysis
-        result = analyze_leaf_image(image_base64=image_base64)
+        result = _get_leaf_analysis().analyze_leaf_image(image_base64=image_base64)
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Analysis failed: {str(e)}")
 
@@ -157,7 +158,7 @@ async def analyze_symptoms(
     """Analyze plant symptoms based on description"""
     # Perform symptoms analysis
     try:
-        result = analyze_leaf_symptoms(
+        result = _get_leaf_analysis().analyze_leaf_symptoms(
             symptoms_description=request.symptoms_description,
             plant_type=request.plant_type or ""
         )
@@ -198,7 +199,7 @@ async def get_care_tips(
     """Get care tips for a specific plant type"""
     # Get care tips
     try:
-        result = get_plant_care_tips(plant_type=request.plant_type)
+        result = _get_leaf_analysis().get_plant_care_tips(plant_type=request.plant_type)
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Failed to get care tips: {str(e)}")
 

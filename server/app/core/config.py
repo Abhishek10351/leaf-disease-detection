@@ -1,6 +1,6 @@
 import secrets
 import warnings
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Optional
 
 from pydantic import (
     AnyUrl,
@@ -30,7 +30,10 @@ class Settings(BaseSettings):
     SECRET_KEY: str = secrets.token_urlsafe(40)
     MONGODB_URI: MongoDsn = "mongodb://localhost:27017"
     MONGODB_DB_NAME: str = "test_db"
-    GEMINI_API_KEY: str
+    OPENROUTER_API_KEY: str
+    OPENROUTER_IMAGE_MODEL: str = "qwen/qwen3.5-35b-a3b"
+    OPENROUTER_TEXT_MODEL: str = "qwen/qwen3.5-35b-a3b"
+    OPENROUTER_EMBEDDING_MODEL: str = "text-embedding-3-small"
     # 60 minutes * 24 hours * 8 days = 8 days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     FRONTEND_HOST: str = "http://localhost:3000"

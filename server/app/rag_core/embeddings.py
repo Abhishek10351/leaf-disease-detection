@@ -1,37 +1,19 @@
-"""
-Embedding generation using Gemini embeddings via LangChain.
-Converts text to vector embeddings for semantic search.
-"""
+"""Embedding generation using OpenRouter embeddings via LangChain."""
 
 import logging
 from typing import List
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
-from app.core.config import settings
+from app.llm_core.openrouter_model import get_openrouter_embedding_model
 
 logger = logging.getLogger(__name__)
 
 
 class EmbeddingGenerator:
-    """Generates embeddings using Google Gemini via LangChain."""
+    """Generates embeddings using OpenRouter via LangChain."""
     
     def __init__(self):
-        api_key = settings.GEMINI_API_KEY
-        if not api_key:
-            raise ValueError("GEMINI_API_KEY not configured")
-        
-        # Initialize LangChain embeddings with document task type (default)
-        self.document_embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/embedding-001",
-            google_api_key=api_key,
-            task_type="RETRIEVAL_DOCUMENT"
-        )
-        
-        # Initialize LangChain embeddings with query task type
-        self.query_embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/embedding-001",
-            google_api_key=api_key,
-            task_type="RETRIEVAL_QUERY"
-        )
+        # OpenRouter OpenAI-compatible embeddings model handles both documents and queries.
+        self.document_embeddings = get_openrouter_embedding_model()
+        self.query_embeddings = self.document_embeddings
     
     def generate_embedding(self, text: str) -> List[float]:
         """

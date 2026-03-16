@@ -244,7 +244,7 @@ async def analyze_with_rag(
     This endpoint:
     1. Searches knowledge base for relevant diseases, treatments, and symptoms
     2. Validates retrieval quality (confidence-based branching)
-    3. Calls Gemini with augmented context if confidence is high enough
+    3. Calls OpenRouter with augmented context if confidence is high enough
     4. Returns analysis enriched with referenced documents and care recommendations
     
     **Request Fields:**
