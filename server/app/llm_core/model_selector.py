@@ -1,17 +1,19 @@
 """
-Centralized model selection for text and vision tasks.
+Centralized model access — thin wrappers kept for backward compatibility.
 
-This keeps provider selection in one place and avoids scattered fallback logic.
+Full analysis now goes through the ensemble pipeline in ensemble.py.
+These helpers return the synthesizer model for any code that still needs
+a single ChatOpenAI instance.
 """
 
-from .openrouter_model import get_openrouter_text_model, get_openrouter_vision_model
+from .ensemble import get_synthesizer
 
 
 def get_text_model():
-    """Return OpenRouter text model."""
-    return get_openrouter_text_model()
+    """Return the synthesizer model (used as fallback single-model access)."""
+    return get_synthesizer()
 
 
 def get_vision_model():
-    """Return OpenRouter vision model."""
-    return get_openrouter_vision_model()
+    """Return the synthesizer model (used as fallback single-model access)."""
+    return get_synthesizer()

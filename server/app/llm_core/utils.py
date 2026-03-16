@@ -1,98 +1,72 @@
-from .model_selector import get_text_model, get_vision_model
+from .ensemble import ensemble_invoke_text, ensemble_invoke_vision, synthesize_structured
 from app.models.analysis import ImageAnalysisLLMResponse, SymptomsAnalysisLLMResponse, PlantCareLLMResponse
 from langchain_core.messages import HumanMessage
 
 
 class LeafAnalysisUtils:
-    """Utility class for leaf analysis operations."""
+    """Leaf analysis using an ensemble of three LLMs synthesized into one response."""
 
-    def __init__(self):
-        """Initialize the LeafAnalysisUtils."""
-        self._text_model = get_text_model()
-        self._vision_model = get_vision_model()
-    
     def analyze_leaf_image(self, image_base64: str) -> ImageAnalysisLLMResponse:
         """
-        Analyze a leaf image for disease detection using OpenRouter vision.
-        
-        Args:
-            image_base64: Base64 encoded image data
-        
-        Returns:
-            ImageAnalysisLLMResponse object
-            
-        Raises:
-            Exception: If analysis fails
-        """
-        # Use OpenRouter vision model.
-        structured_model = self._vision_model.with_structured_output(ImageAnalysisLLMResponse)
-        
-        # Create the analysis prompt
-        analysis_prompt = "You are an expert plant pathologist. Analyze this leaf image and provide a comprehensive diagnosis."
+        Analyze a leaf image via ensemble vision models then a single synthesizer.
 
-        # Create message with image
+        Each of the three ensemble models independently examines the image;
+        their plain-text outputs are fed to the synthesizer which produces a
+        single structured ImageAnalysisLLMResponse.
+        """
+        prompt = "You are an expert plant pathologist. Analyze this leaf image and provide a comprehensive diagnosis."
         message = HumanMessage(
             content=[
-                {"type": "text", "text": analysis_prompt},
+                {"type": "text", "text": prompt},
                 {
-                    "type": "image_url", 
-                    "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}
-                }
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"},
+                },
             ]
         )
+        responses = ensemble_invoke_vision([message])
+        synthesis_context = (
+            "You are an expert plant pathologist. "
+            "Using the following ensemble analyses of a leaf image, "
+            "produce a single unified, comprehensive diagnosis."
+        )
+        return synthesize_structured(responses, synthesis_context, ImageAnalysisLLMResponse)
 
-        # Get structured analysis
-        analysis_data = structured_model.invoke([message])
-        
-        return analysis_data
-
-
-    def analyze_leaf_symptoms(self, symptoms_description: str, plant_type: str = "") -> SymptomsAnalysisLLMResponse:
+    def analyze_leaf_symptoms(
+        self, symptoms_description: str, plant_type: str = ""
+    ) -> SymptomsAnalysisLLMResponse:
         """
-        Analyze leaf symptoms based on text description only.
-        
-        Args:
-            symptoms_description: Detailed description of symptoms
-            plant_type: Type of plant (optional)
-        
-        Returns:
-            SymptomsAnalysisLLMResponse object
-            
-        Raises:
-            Exception: If analysis fails
+        Analyze leaf symptoms via ensemble text models then a single synthesizer.
         """
-        # Create structured output model
-        structured_model = self._text_model.with_structured_output(SymptomsAnalysisLLMResponse)
-        
         plant_context = f"Plant type: {plant_type}\n" if plant_type else ""
-        
-        analysis_prompt = f"You are an expert plant pathologist. Analyze these symptoms and provide a comprehensive diagnosis.\n\n{plant_context}Symptoms: {symptoms_description}"
-
-        # Get structured analysis
-        analysis_data = structured_model.invoke(analysis_prompt)
-        
-        return analysis_data
-
+        prompt = (
+            "You are an expert plant pathologist. "
+            "Analyze these symptoms and provide a comprehensive diagnosis.\n\n"
+            f"{plant_context}Symptoms: {symptoms_description}"
+        )
+        responses = ensemble_invoke_text(prompt)
+        synthesis_context = (
+            "You are an expert plant pathologist synthesizing analyses for the following case:\n"
+            f"{plant_context}Symptoms: {symptoms_description}\n"
+            "Produce a single unified, accurate diagnosis."
+        )
+        return synthesize_structured(responses, synthesis_context, SymptomsAnalysisLLMResponse)
 
     def get_plant_care_tips(self, plant_type: str) -> PlantCareLLMResponse:
         """
-        Get general care tips for a specific plant type.
-        
-        Args:
-            plant_type: Type of plant
-        
-        Returns:
-            PlantCareLLMResponse object
-            
-        Raises:
-            Exception: If getting care tips fails
+        Get plant care tips via ensemble text models then a single synthesizer.
         """
-        # Create structured output model
-        structured_model = self._text_model.with_structured_output(PlantCareLLMResponse)
-        
-        care_prompt = f"Provide comprehensive care guidelines for {plant_type}."
-
-        # Get structured care tips
-        care_data = structured_model.invoke(care_prompt)
-        
-        return care_data
+        prompt = (
+            f"Provide comprehensive care guidelines for {plant_type}. "
+            "Keep the response concise but complete: "
+            "quick_overview 2-3 sentences, key_tips exactly 5 short bullets, "
+            "common_problems exactly 3 short bullets, and detailed_guide under 400 words."
+        )
+        responses = ensemble_invoke_text(prompt)
+        synthesis_context = (
+            f"Provide comprehensive but concise care guidelines for {plant_type}. "
+            "Use the expert analyses below to produce the final structured output. "
+            "quick_overview 2-3 sentences, key_tips exactly 5 short bullets, "
+            "common_problems exactly 3 short bullets, detailed_guide under 400 words."
+        )
+        return synthesize_structured(responses, synthesis_context, PlantCareLLMResponse)

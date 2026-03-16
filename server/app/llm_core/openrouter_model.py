@@ -1,9 +1,6 @@
-"""
-OpenRouter vision model initialisation.
+"""OpenRouter helpers — embeddings only.
 
-OpenRouter exposes an OpenAI-compatible endpoint so we use ChatOpenAI
-with a custom base_url.  The default image model is configurable via
-OPENROUTER_IMAGE_MODEL in .env (defaults to google/gemini-2.0-flash).
+Text and vision inference are handled by the ensemble pipeline in ensemble.py.
 """
 
 from functools import lru_cache
@@ -11,22 +8,24 @@ from functools import lru_cache
 from app.core.config import settings
 
 
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+OPENROUTER_DEFAULT_HEADERS = {
+    "HTTP-Referer": "https://leaf-disease-detection",
+    "X-Title": "Leaf Disease Detection",
+}
+
+
 @lru_cache(maxsize=1)
-def get_openrouter_vision_model():
-    """Return OpenRouter vision model, or None when key is missing."""
+def get_openrouter_embedding_model():
+    """Return configured OpenRouter embedding model."""
     if not settings.OPENROUTER_API_KEY:
-        return None
+        raise RuntimeError("OPENROUTER_API_KEY not found in environment variables")
 
-    from langchain_openai import ChatOpenAI
+    from langchain_openai import OpenAIEmbeddings
 
-    return ChatOpenAI(
-        model=settings.OPENROUTER_IMAGE_MODEL,
-        base_url="https://openrouter.ai/api/v1",
+    return OpenAIEmbeddings(
+        model=settings.OPENROUTER_EMBEDDING_MODEL,
+        base_url=OPENROUTER_BASE_URL,
         api_key=settings.OPENROUTER_API_KEY,
-        temperature=0.1,
-        default_headers={
-            "HTTP-Referer": "https://leaf-disease-detection",
-            "X-Title": "Leaf Disease Detection",
-        },
-        max_tokens=1000,
+        default_headers=OPENROUTER_DEFAULT_HEADERS,
     )

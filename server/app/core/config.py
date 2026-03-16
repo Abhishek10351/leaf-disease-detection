@@ -31,9 +31,11 @@ class Settings(BaseSettings):
     MONGODB_URI: MongoDsn = "mongodb://localhost:27017"
     MONGODB_DB_NAME: str = "test_db"
     OPENROUTER_API_KEY: str
-    OPENROUTER_IMAGE_MODEL: str = "qwen/qwen3.5-35b-a3b"
-    OPENROUTER_TEXT_MODEL: str = "qwen/qwen3.5-35b-a3b"
+    # Synthesizer model: aggregates the three ensemble members' outputs
+    OPENROUTER_SYNTHESIZER_MODEL: str = "qwen/qwen3.5-35b-a3b"
     OPENROUTER_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    OPENROUTER_TEXT_MAX_TOKENS: int = 4096
+    OPENROUTER_VISION_MAX_TOKENS: int = 4096
     # 60 minutes * 24 hours * 8 days = 8 days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
     FRONTEND_HOST: str = "http://localhost:3000"

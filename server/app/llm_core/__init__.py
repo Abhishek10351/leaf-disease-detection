@@ -1,10 +1,12 @@
 """
 LLM Core Module
 
-Provides LLM-powered analysis for leaf disease detection using:
-- OpenRouter for image analysis (OPENROUTER_IMAGE_MODEL)
-- OpenRouter for text analysis (OPENROUTER_TEXT_MODEL)
-- Structured outputs via LangChain
+Provides LLM-powered analysis for leaf disease detection using an ensemble of
+three OpenRouter models (parallel inference) synthesized by a single aggregator:
+  - google/gemma-3-12b-it:free
+  - nvidia/nemotron-nano-12b-v2-vl:free
+  - qwen/qwen3.5-35b-a3b
+All structured outputs are produced by the synthesizer via LangChain.
 """
 
 from functools import lru_cache
