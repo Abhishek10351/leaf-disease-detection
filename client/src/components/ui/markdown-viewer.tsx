@@ -82,8 +82,10 @@ const MarkdownViewer = memo(({ content, className, compact = false }: MarkdownVi
           ),
           
           // Code
-          code: ({ inline, children, className }) => {
-            if (inline) {
+          code: ({ children, className }) => {
+            const isBlockCode = Boolean(className?.includes('language-'))
+
+            if (!isBlockCode) {
               return (
                 <code className="bg-muted px-1.5 py-0.5 rounded-md text-sm font-mono text-foreground">
                   {children}

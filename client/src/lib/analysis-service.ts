@@ -12,6 +12,16 @@ import {
   AnalysisHistory
 } from '@/types/analysis';
 
+type ApiErrorResponse = {
+  detail?: string;
+  message?: string;
+};
+
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  const axiosError = error as AxiosError<ApiErrorResponse>;
+  return axiosError.response?.data?.detail || axiosError.response?.data?.message || axiosError.message || fallback;
+};
+
 export class AnalysisService {
   /**
    * Upload an image for analysis
@@ -29,9 +39,7 @@ export class AnalysisService {
 
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError;
-      const message = (axiosError.response?.data as any)?.detail || axiosError.message || 'Upload failed';
-      throw new Error(message);
+      throw new Error(getErrorMessage(error, 'Upload failed'));
     }
   }
 
@@ -43,9 +51,7 @@ export class AnalysisService {
       const response = await api.post<ImageAnalysisResponse>('/analysis/analyze', request);
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError;
-      const message = (axiosError.response?.data as any)?.detail || axiosError.message || 'Analysis failed';
-      throw new Error(message);
+      throw new Error(getErrorMessage(error, 'Analysis failed'));
     }
   }
 
@@ -57,9 +63,7 @@ export class AnalysisService {
       const response = await api.post<SymptomsAnalysisResponse>('/analysis/symptoms', request);
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError;
-      const message = (axiosError.response?.data as any)?.detail || axiosError.message || 'Analysis failed';
-      throw new Error(message);
+      throw new Error(getErrorMessage(error, 'Analysis failed'));
     }
   }
 
@@ -71,9 +75,7 @@ export class AnalysisService {
       const response = await api.post<PlantCareResponse>('/analysis/care-tips', request);
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError;
-      const message = (axiosError.response?.data as any)?.detail || axiosError.message || 'Failed to get care tips';
-      throw new Error(message);
+      throw new Error(getErrorMessage(error, 'Failed to get care tips'));
     }
   }
 
@@ -92,9 +94,7 @@ export class AnalysisService {
       });
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError;
-      const message = (axiosError.response?.data as any)?.detail || axiosError.message || 'Failed to fetch images';
-      throw new Error(message);
+      throw new Error(getErrorMessage(error, 'Failed to fetch images'));
     }
   }
 
@@ -117,9 +117,7 @@ export class AnalysisService {
       });
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError;
-      const message = (axiosError.response?.data as any)?.detail || axiosError.message || 'Failed to fetch history';
-      throw new Error(message);
+      throw new Error(getErrorMessage(error, 'Failed to fetch history'));
     }
   }
 
@@ -130,9 +128,7 @@ export class AnalysisService {
     try {
       await api.delete(`/analysis/images/${imageId}`);
     } catch (error) {
-      const axiosError = error as AxiosError;
-      const message = (axiosError.response?.data as any)?.detail || axiosError.message || 'Failed to delete image';
-      throw new Error(message);
+      throw new Error(getErrorMessage(error, 'Failed to delete image'));
     }
   }
 
@@ -143,9 +139,7 @@ export class AnalysisService {
     try {
       await api.delete(`/analysis/history/${analysisId}`);
     } catch (error) {
-      const axiosError = error as AxiosError;
-      const message = (axiosError.response?.data as any)?.detail || axiosError.message || 'Failed to delete analysis';
-      throw new Error(message);
+      throw new Error(getErrorMessage(error, 'Failed to delete analysis'));
     }
   }
 }

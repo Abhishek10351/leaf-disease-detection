@@ -91,7 +91,7 @@ export default function Dashboard() {
                                     {user?.name || "User"}
                                 </div>
                                 <CardDescription>
-                                    You're successfully logged in
+                                    You&apos;re successfully logged in
                                 </CardDescription>
                             </CardContent>
                         </Card>

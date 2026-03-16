@@ -21,25 +21,25 @@ export default function AnalysisDashboard() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center size-12 bg-primary text-primary-foreground rounded-xl">
-              <Bot className="size-6" />
+        <div className="container mx-auto px-4 py-4 sm:py-6">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="flex items-center justify-center size-10 sm:size-12 bg-primary text-primary-foreground rounded-xl shrink-0">
+              <Bot className="size-5 sm:size-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Leaf Disease Detection</h1>
-              <p className="text-muted-foreground">AI-powered plant health analysis and care recommendations</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">Leaf Disease Detection</h1>
+              <p className="text-sm sm:text-base text-muted-foreground">AI-powered plant health analysis and care recommendations</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8 mt-4">
+      <div className="container mx-auto px-4 py-6 sm:py-8 mt-2 sm:mt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           {/* Tab Navigation */}
           <div className="flex justify-center">
-            <TabsList className="grid w-full max-w-2xl grid-cols-4 bg-muted/50">
+            <TabsList className="grid w-full max-w-2xl grid-cols-2 sm:grid-cols-4 h-auto bg-muted/50 gap-1 p-1">
               <TabsTrigger value="image" className="flex items-center gap-2">
                 <Scan className="size-4" />
                 <span className="hidden sm:inline">Image Analysis</span>
@@ -67,7 +67,7 @@ export default function AnalysisDashboard() {
           <div className="max-w-4xl mx-auto">
             <TabsContent value="image" className="mt-6">
               <div className="space-y-4">
-                <Card className="p-6 bg-muted/20 border-dashed">
+                <Card className="p-4 sm:p-6 bg-muted/20 border-dashed">
                   <div className="text-center space-y-2">
                     <Scan className="size-8 text-primary mx-auto" />
                     <h3 className="text-lg font-semibold">Upload Plant Image</h3>
@@ -82,12 +82,12 @@ export default function AnalysisDashboard() {
 
             <TabsContent value="symptoms" className="mt-6">
               <div className="space-y-4">
-                <Card className="p-6 bg-muted/20 border-dashed">
+                <Card className="p-4 sm:p-6 bg-muted/20 border-dashed">
                   <div className="text-center space-y-2">
                     <FileText className="size-8 text-primary mx-auto" />
                     <h3 className="text-lg font-semibold">Describe Symptoms</h3>
                     <p className="text-muted-foreground text-sm">
-                      Describe the symptoms you've observed on your plant for text-based analysis and recommendations.
+                      Describe the symptoms you&apos;ve observed on your plant for text-based analysis and recommendations.
                     </p>
                   </div>
                 </Card>
@@ -97,7 +97,7 @@ export default function AnalysisDashboard() {
 
             <TabsContent value="care" className="mt-6">
               <div className="space-y-4">
-                <Card className="p-6 bg-muted/20 border-dashed">
+                <Card className="p-4 sm:p-6 bg-muted/20 border-dashed">
                   <div className="text-center space-y-2">
                     <Sprout className="size-8 text-primary mx-auto" />
                     <h3 className="text-lg font-semibold">Plant Care Guide</h3>
@@ -112,7 +112,7 @@ export default function AnalysisDashboard() {
 
             <TabsContent value="history" className="mt-6">
               <div className="space-y-4">
-                <Card className="p-6 bg-muted/20 border-dashed">
+                <Card className="p-4 sm:p-6 bg-muted/20 border-dashed">
                   <div className="text-center space-y-2">
                     <History className="size-8 text-primary mx-auto" />
                     <h3 className="text-lg font-semibold">Analysis History</h3>

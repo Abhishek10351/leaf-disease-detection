@@ -19,6 +19,7 @@ import {
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { logout } from "@/lib/redux/slices/authSlice";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 interface NavigationLink {
     title: string;
@@ -42,24 +43,37 @@ const Header: React.FC = () => {
         router.push("/");
     };
 
+    const isInternalRoute = (href: string) => href.startsWith("/");
+
     return (
         <header className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-sm py-4 z-50 border-b border-gray-100">
             <nav className="container mx-auto px-6 flex justify-between items-center h-12">
-                <a href="/" className="flex items-center gap-2">
+                <Link href="/" className="flex items-center gap-2">
                     <span className="text-lg font-semibold tracking-tighter">
                         FastAPI Template
                     </span>
-                </a>
+                </Link>
                 <NavigationMenu className="hidden lg:block">
                     <NavigationMenuList>
                         {navigationLinks.map((link) => (
                             <NavigationMenuItem key={link.title}>
-                                <NavigationMenuLink
-                                    href={link.href}
-                                    className={navigationMenuTriggerStyle()}
-                                >
-                                    {link.title}
-                                </NavigationMenuLink>
+                                {isInternalRoute(link.href) ? (
+                                    <NavigationMenuLink
+                                        href={link.href}
+                                        className={navigationMenuTriggerStyle()}
+                                    >
+                                        {link.title}
+                                    </NavigationMenuLink>
+                                ) : (
+                                    <NavigationMenuLink
+                                        href={link.href}
+                                        className={navigationMenuTriggerStyle()}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                    >
+                                        {link.title}
+                                    </NavigationMenuLink>
+                                )}
                             </NavigationMenuItem>
                         ))}
                     </NavigationMenuList>
@@ -87,13 +101,13 @@ const Header: React.FC = () => {
                                 className="text-gray-600 hover:text-indigo-600 transition-colors duration-200 cursor-pointer"
                                 asChild
                             >
-                                <a href="/auth/login">Sign in</a>
+                                <Link href="/auth/login">Sign in</Link>
                             </Button>
                             <Button
                                 className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors duration-200 shadow-md cursor-pointer"
                                 asChild
                             >
-                                <a href="/auth/signup">Create Account</a>
+                                <Link href="/auth/signup">Create Account</Link>
                             </Button>
                         </>
                     )}
@@ -110,23 +124,35 @@ const Header: React.FC = () => {
                     >
                         <SheetHeader>
                             <SheetTitle>
-                                <a href="/" className="flex items-center gap-2">
+                                <Link href="/" className="flex items-center gap-2">
                                     <span className="text-lg font-semibold tracking-tighter">
                                         FastAPI Template
                                     </span>
-                                </a>
+                                </Link>
                             </SheetTitle>
                         </SheetHeader>
                         <div className="flex flex-col p-4">
                             <div className="flex flex-col gap-6">
                                 {navigationLinks.map((link) => (
-                                    <a
-                                        key={link.title}
-                                        href={link.href}
-                                        className="font-medium"
-                                    >
-                                        {link.title}
-                                    </a>
+                                    isInternalRoute(link.href) ? (
+                                        <Link
+                                            key={link.title}
+                                            href={link.href}
+                                            className="font-medium"
+                                        >
+                                            {link.title}
+                                        </Link>
+                                    ) : (
+                                        <a
+                                            key={link.title}
+                                            href={link.href}
+                                            className="font-medium"
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >
+                                            {link.title}
+                                        </a>
+                                    )
                                 ))}
                             </div>
                             <div className="mt-6 flex flex-col gap-4">
@@ -151,15 +177,15 @@ const Header: React.FC = () => {
                                             className="text-gray-600 hover:text-indigo-600 transition-colors duration-200 cursor-pointer"
                                             asChild
                                         >
-                                            <a href="/auth/login">Sign in</a>
+                                            <Link href="/auth/login">Sign in</Link>
                                         </Button>
                                         <Button
                                             className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-indigo-700 transition-colors duration-200 shadow-md cursor-pointer"
                                             asChild
                                         >
-                                            <a href="/auth/signup">
+                                            <Link href="/auth/signup">
                                                 Create Account
-                                            </a>
+                                            </Link>
                                         </Button>
                                     </>
                                 )}

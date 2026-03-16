@@ -61,7 +61,7 @@ const HomePage = async () => {
                         </div>
                         <h3 className="text-lg font-semibold mb-2">Symptom Analysis</h3>
                         <p className="text-muted-foreground text-sm">
-                            Describe symptoms you've observed and get expert analysis based on your detailed descriptions.
+                            Describe symptoms you&apos;ve observed and get expert analysis based on your detailed descriptions.
                         </p>
                     </Card>
 

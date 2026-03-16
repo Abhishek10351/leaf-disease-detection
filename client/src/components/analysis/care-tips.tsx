@@ -7,11 +7,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader } from '@/components/ui/loader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { AnalysisService } from '@/lib/analysis-service'
 import { PlantCareResponse } from '@/types/analysis'
 import { AnalysisResultViewer } from '@/components/analysis/analysis-result-viewer'
-import { Sprout, Clock, Bot, AlertCircle, Heart, Lightbulb, Copy, Printer } from 'lucide-react'
+import { Sprout, AlertCircle, Heart, Lightbulb, Copy, Printer } from 'lucide-react'
 
 interface CareTipsProps {
   onCareTipsComplete?: (tips: PlantCareResponse) => void
@@ -161,7 +160,7 @@ export function CareTips({ onCareTipsComplete }: CareTipsProps) {
               <CardTitle className="text-sm">Plant Information</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-lg font-semibold capitalize">{careTips.plant_type}</p>
+              <p className="text-lg font-semibold capitalize">{plantType}</p>
             </CardContent>
           </Card>
           
@@ -175,7 +174,7 @@ export function CareTips({ onCareTipsComplete }: CareTipsProps) {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    navigator.clipboard?.writeText(careTips.care_tips)
+                    navigator.clipboard?.writeText(careTips.detailed_guide)
                   }}
                   className="flex-1"
                 >

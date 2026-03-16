@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { FileInput } from '@/components/ui/file-input'
@@ -10,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { AnalysisService } from '@/lib/analysis-service'
 import { ImageUploadResponse, ImageAnalysisResponse } from '@/types/analysis'
 import { AnalysisResultViewer } from '@/components/analysis/analysis-result-viewer'
-import { Scan, Clock, Bot, AlertCircle, CheckCircle, Upload } from 'lucide-react'
+import { Scan, Bot, AlertCircle, CheckCircle, Upload } from 'lucide-react'
 
 interface ImageAnalysisProps {
   onAnalysisComplete?: (analysis: ImageAnalysisResponse) => void
@@ -87,6 +88,9 @@ export function ImageAnalysis({ onAnalysisComplete }: ImageAnalysisProps) {
                 selectedFile={selectedFile}
                 onFileSelect={setSelectedFile}
                 accept="image/*"
+                showCameraButton
+                cameraCapture="environment"
+                cameraLabel="Take Photo"
               />
 
               {selectedFile && (
@@ -112,24 +116,29 @@ export function ImageAnalysis({ onAnalysisComplete }: ImageAnalysisProps) {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-4 p-3 bg-muted/50 rounded-lg sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2 min-w-0">
                   <CheckCircle className="size-4 text-green-600" />
-                    <span className="text-sm font-medium">Image uploaded successfully</span>
-                    
-                  </div>
-                  <img
+                  <span className="text-sm font-medium">Image uploaded successfully</span>
+                </div>
+
+                <div className="flex items-center gap-3 self-start sm:self-auto">
+                  <Image
                     src={`http://localhost:8000/analysis/images/${uploadedImage.image_id}/view`}
                     alt="Uploaded plant"
-                    className="w-32 h-32 object-cover rounded-md"
+                    width={128}
+                    height={128}
+                    unoptimized
+                    className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-md"
                   />
-                <Button variant="outline" size="sm" onClick={reset}>
-                  Upload New
-                </Button>
+                  <Button variant="outline" size="sm" onClick={reset}>
+                    Upload New
+                  </Button>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>{uploadedImage.filename}</span>
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <span className="break-all">{uploadedImage.filename}</span>
                 <Badge variant="secondary">
                   {(uploadedImage.file_size / 1024 / 1024).toFixed(2)} MB
                 </Badge>

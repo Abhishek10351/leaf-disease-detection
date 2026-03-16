@@ -71,6 +71,6 @@ export interface AnalysisHistory {
   id: string;
   analysis_type: "image" | "symptoms" | "care";
   timestamp: string;
-  request_data: any;
+  request_data: Record<string, unknown>;
   preview?: string;
 }

@@ -1,8 +1,8 @@
 "use client";
 import React from "react";
-import { Zap, ShieldCheck, Feather, LayoutGrid, GitFork } from "lucide-react";
+import { LucideIcon, Zap, ShieldCheck, Feather, LayoutGrid } from "lucide-react";
 export interface FeatureProps {
-    icon: React.ComponentType<any>;
+    icon: LucideIcon;
     title: string;
     description: string;
 }

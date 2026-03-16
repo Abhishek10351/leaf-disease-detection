@@ -8,11 +8,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Loader } from '@/components/ui/loader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { AnalysisService } from '@/lib/analysis-service'
 import { SymptomsAnalysisResponse } from '@/types/analysis'
 import { AnalysisResultViewer } from '@/components/analysis/analysis-result-viewer'
-import { FileText, Clock, Bot, AlertCircle } from 'lucide-react'
+import { FileText, Bot, AlertCircle } from 'lucide-react'
 
 interface SymptomsAnalysisProps {
   onAnalysisComplete?: (analysis: SymptomsAnalysisResponse) => void
@@ -64,7 +63,7 @@ export function SymptomsAnalysis({ onAnalysisComplete }: SymptomsAnalysisProps) 
             <FileText className="size-5 text-primary" />
             <CardTitle className="text-lg">Symptoms Analysis</CardTitle>
           </div>
-          <CardDescription>Describe the symptoms you've observed on your plant</CardDescription>
+          <CardDescription>Describe the symptoms you&apos;ve observed on your plant</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
 
