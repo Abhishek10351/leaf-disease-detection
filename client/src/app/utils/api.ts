@@ -1,10 +1,14 @@
 import axios from "axios";
 import cookies from "js-cookie";
+import dotenv from "dotenv";
 
+dotenv.config();
 const baseURL = "http://127.0.0.1:8000/";
 
+const finalBaseURL = process.env.NEXT_PUBLIC_API_BASE_URL || baseURL;
+
 const api = axios.create({
-    baseURL: baseURL,
+    baseURL: finalBaseURL,
     headers: {
         "Content-Type": "application/json",
     },
