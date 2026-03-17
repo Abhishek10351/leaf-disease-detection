@@ -61,6 +61,16 @@ An advanced AI-powered plant disease detection and care recommendation system bu
 
 ## 🚀 Quick Start
 
+## 🤗 Deploy To Hugging Face Spaces (GitHub)
+
+This repository is ready for Docker-based Hugging Face Spaces deployment.
+
+1. Create a new Space with SDK set to `Docker`
+2. Import this GitHub repository (or a dedicated deployment branch)
+3. Add required secrets/variables in Space settings
+
+Detailed instructions are in [HF_SPACE_SETUP.md](HF_SPACE_SETUP.md).
+
 ### Prerequisites
 
 - **Python** 3.11+ and **uv** (or pip)
