@@ -1,3 +1,13 @@
+---
+title: Leaf Disease Detection
+emoji: 🌿
+colorFrom: green
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
+
 # FastAPI + Next.js + MongoDB Template - Backend
 
 FastAPI backend server providing secure REST APIs with authentication, user management, and extensible architecture.
