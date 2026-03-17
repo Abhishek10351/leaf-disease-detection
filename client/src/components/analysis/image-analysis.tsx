@@ -125,7 +125,7 @@ export function ImageAnalysis({ onAnalysisComplete }: ImageAnalysisProps) {
 
                 <div className="flex items-center gap-3 self-start sm:self-auto">
                   <Image
-                    src={`${finalBaseURL}/analysis/images/${uploadedImage.image_id}/view`}
+                    src={`${finalBaseURL}analysis/images/${uploadedImage.image_id}/view`}
                     alt="Uploaded plant"
                     width={128}
                     height={128}
