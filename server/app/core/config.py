@@ -6,7 +6,6 @@ from pydantic import (
     AnyUrl,
     BeforeValidator,
     computed_field,
-    MongoDsn,
 )
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -28,7 +27,7 @@ class Settings(BaseSettings):
     )
     API_V1_STR: str = "/api/v1"  # Kept for future use, not applied to routes yet
     SECRET_KEY: str = secrets.token_urlsafe(40)
-    MONGODB_URI: MongoDsn = "mongodb://localhost:27017"
+    MONGODB_URI: str = "mongodb://localhost:27017"
     MONGODB_DB_NAME: str = "test_db"
     OPENROUTER_API_KEY: str
     # Synthesizer model: aggregates the three ensemble members' outputs
@@ -36,10 +35,12 @@ class Settings(BaseSettings):
     OPENROUTER_EMBEDDING_MODEL: str = "text-embedding-3-small"
     OPENROUTER_TEXT_MAX_TOKENS: int = 4096
     OPENROUTER_VISION_MAX_TOKENS: int = 4096
-    # 60 minutes * 24 hours * 8 days = 8 days
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+    OPENROUTER_GIST_MAX_TOKENS: int = 512
+    OPENROUTER_GIST_WORD_LIMIT: int = 130
+    # 60 minutes * 24 hours * 20 days = 20  days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 20
     FRONTEND_HOST: str = "http://localhost:3000"
-    ENVIRONMENT: Literal["local", "staging", "production"] = "local"
+    ENVIRONMENT: Literal["local", "production"] = "local"
 
     BACKEND_CORS_ORIGINS: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = (
         []
