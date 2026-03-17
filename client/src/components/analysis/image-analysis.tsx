@@ -12,6 +12,7 @@ import { AnalysisService } from '@/lib/analysis-service'
 import { ImageUploadResponse, ImageAnalysisResponse } from '@/types/analysis'
 import { AnalysisResultViewer } from '@/components/analysis/analysis-result-viewer'
 import { Scan, Bot, AlertCircle, CheckCircle, Upload } from 'lucide-react'
+import { finalBaseURL } from '@/app/utils/api'
 
 interface ImageAnalysisProps {
   onAnalysisComplete?: (analysis: ImageAnalysisResponse) => void
@@ -124,7 +125,7 @@ export function ImageAnalysis({ onAnalysisComplete }: ImageAnalysisProps) {
 
                 <div className="flex items-center gap-3 self-start sm:self-auto">
                   <Image
-                    src={`http://localhost:8000/analysis/images/${uploadedImage.image_id}/view`}
+                    src={`${finalBaseURL}/analysis/images/${uploadedImage.image_id}/view`}
                     alt="Uploaded plant"
                     width={128}
                     height={128}
