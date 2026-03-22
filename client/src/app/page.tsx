@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Bot, Scan, FileText, Sprout, ArrowRight, Leaf, Heart, Shield } from 'lucide-react'
+import { Bot, Scan, FileText, Sprout, ArrowRight, Heart, Shield } from 'lucide-react'
 
 const HomePage = async () => {
     return (
@@ -36,10 +36,6 @@ const HomePage = async () => {
                                 <ArrowRight className="size-5 ml-2" />
                             </Button>
                         </Link>
-                        <Button variant="outline" size="lg" className="text-lg px-8 py-6">
-                            <Leaf className="size-5 mr-2" />
-                            Learn More
-                        </Button>
                     </div>
                 </div>
 
@@ -104,22 +100,6 @@ const HomePage = async () => {
                     </div>
                 </div>
 
-                {/* Call to Action */}
-                <div className="mt-20 text-center">
-                    <Card className="p-8 bg-primary/5 border-primary/20">
-                        <h3 className="text-2xl font-bold mb-4">Ready to Help Your Plants Thrive?</h3>
-                        <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                            Join thousands of gardeners who trust our AI-powered plant health analysis 
-                            to keep their plants healthy and productive.
-                        </p>
-                        <Link href="/analysis">
-                            <Button size="lg" className="text-lg px-12 py-6">
-                                Get Started Now
-                                <ArrowRight className="size-5 ml-2" />
-                            </Button>
-                        </Link>
-                    </Card>
-                </div>
             </div>
         </div>
     );

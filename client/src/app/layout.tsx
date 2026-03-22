@@ -32,7 +32,7 @@ export default function RootLayout({
                 <ReduxProvider>
                     <AuthProvider>
                         <Header />
-                        {children}
+                        <main className="pt-20 sm:pt-24">{children}</main>
                     </AuthProvider>
                 </ReduxProvider>
             </body>

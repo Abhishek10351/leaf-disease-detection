@@ -28,9 +28,7 @@ interface NavigationLink {
 
 const navigationLinks: NavigationLink[] = [
     { title: "Home", href: "/" },
-    { title: "Documentation", href: "#" },
-    { title: "Dashboard", href: "/dashboard" },
-    { title: "API Docs", href: "http://localhost:8000/docs" },
+    { title: "Analysis", href: "/analysis" },
 ];
 
 const Header: React.FC = () => {
@@ -50,7 +48,7 @@ const Header: React.FC = () => {
             <nav className="container mx-auto px-6 flex justify-between items-center h-12">
                 <Link href="/" className="flex items-center gap-2">
                     <span className="text-lg font-semibold tracking-tighter">
-                        FastAPI Template
+                        Leaf Disease Detection
                     </span>
                 </Link>
                 <NavigationMenu className="hidden lg:block">
@@ -126,7 +124,7 @@ const Header: React.FC = () => {
                             <SheetTitle>
                                 <Link href="/" className="flex items-center gap-2">
                                     <span className="text-lg font-semibold tracking-tighter">
-                                        FastAPI Template
+                                        Leaf Disease Detection
                                     </span>
                                 </Link>
                             </SheetTitle>
