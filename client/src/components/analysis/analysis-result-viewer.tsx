@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
     Card,
@@ -9,12 +10,14 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import { MarkdownViewer } from "@/components/ui/markdown-viewer";
+import { Button } from "@/components/ui/button";
 import {
     Bot,
     AlertCircle,
     CheckCircle,
     AlertTriangle,
     XCircle,
+    ArrowDown,
 } from "lucide-react";
 import { ImageAnalysisResponse, SymptomsAnalysisResponse, PlantCareResponse } from "@/types/analysis";
 
@@ -86,9 +89,26 @@ export function AnalysisResultViewer({
     title,
     showMetadata = true,
 }: AnalysisResultViewerProps) {
+    const detailedSectionRef = useRef<HTMLDivElement>(null);
+
+    const summaryText =
+        isImageAnalysis(result) || isSymptomsAnalysis(result)
+            ? result.quick_summary
+                  .replace(/see full report below\.?/gi, "")
+                  .replace(/\s{2,}/g, " ")
+                  .trim()
+            : "";
+
     const detailedContent = isImageAnalysis(result) || isSymptomsAnalysis(result) 
         ? result.detailed_analysis 
         : result.detailed_guide;
+
+    const scrollToDetailedReport = () => {
+        detailedSectionRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+        });
+    };
 
     return (
         <Card className="w-full">
@@ -105,9 +125,21 @@ export function AnalysisResultViewer({
                     </div>
                 </div>
                 {(isImageAnalysis(result) || isSymptomsAnalysis(result)) && (
-                    <CardDescription className="text-base">
-                        {result.quick_summary}
-                    </CardDescription>
+                    <div className="space-y-2">
+                        <CardDescription className="text-base">
+                            {summaryText}
+                        </CardDescription>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-fit text-xs"
+                            onClick={scrollToDetailedReport}
+                        >
+                            <ArrowDown className="h-3.5 w-3.5 mr-1" />
+                            Jump to detailed analysis
+                        </Button>
+                    </div>
                 )}
                 {isPlantCare(result) && (
                     <CardDescription className="text-base">
@@ -335,7 +367,7 @@ export function AnalysisResultViewer({
                 )}
 
                 {/* Detailed Analysis */}
-                <div className="pt-4 border-t">
+                <div ref={detailedSectionRef} className="pt-4 border-t">
                     <h4 className="text-sm font-semibold mb-3">
                         Detailed Analysis
                     </h4>

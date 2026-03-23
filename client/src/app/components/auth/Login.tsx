@@ -33,7 +33,7 @@ const Login: React.FC = () => {
     // Redirect if already authenticated
     useEffect(() => {
         if (isAuthenticated) {
-            router.push("/dashboard");
+            router.push("/analysis");
         }
     }, [isAuthenticated, router]);
 
@@ -42,7 +42,7 @@ const Login: React.FC = () => {
 
         if (loginUser.fulfilled.match(result)) {
             await dispatch(fetchUserData());
-            setTimeout(() => router.push("/dashboard"), 1500);
+            setTimeout(() => router.push("/analysis"), 1500);
         }
     };
 
@@ -64,8 +64,7 @@ const Login: React.FC = () => {
                             )}
                             {isAuthenticated && (
                                 <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-md text-sm">
-                                    Login successful! Redirecting to
-                                    dashboard...
+                                    Login successful! Redirecting to analysis...
                                 </div>
                             )}
                             <div className="flex w-full flex-col gap-2">
