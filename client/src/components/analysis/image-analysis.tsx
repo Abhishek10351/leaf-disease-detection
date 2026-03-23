@@ -51,7 +51,7 @@ export function ImageAnalysis({ onAnalysisComplete }: ImageAnalysisProps) {
     if (!uploadedImage) return
 
     setIsAnalyzing(true)
-    setAnalysisStatus('Running model ensemble...')
+    setAnalysisStatus('Analyzing leaf image...')
     setError(null)
 
     try {

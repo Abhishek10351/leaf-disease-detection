@@ -1,5 +1,4 @@
 import secrets
-import warnings
 from typing import Annotated, Any, Literal, Optional
 
 from pydantic import (
@@ -25,18 +24,12 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
         extra="ignore",
     )
-    API_V1_STR: str = "/api/v1"  # Kept for future use, not applied to routes yet
     SECRET_KEY: str = secrets.token_urlsafe(40)
     MONGODB_URI: str = "mongodb://localhost:27017"
     MONGODB_DB_NAME: str = "test_db"
     OPENROUTER_API_KEY: str
-    # Synthesizer model: aggregates the three ensemble members' outputs
-    OPENROUTER_SYNTHESIZER_MODEL: str = "qwen/qwen3.5-35b-a3b"
-    OPENROUTER_EMBEDDING_MODEL: str = "text-embedding-3-small"
     OPENROUTER_TEXT_MAX_TOKENS: int = 4096
     OPENROUTER_VISION_MAX_TOKENS: int = 4096
-    OPENROUTER_GIST_MAX_TOKENS: int = 512
-    OPENROUTER_GIST_WORD_LIMIT: int = 130
     # 60 minutes * 24 hours * 20 days = 20  days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 20
     FRONTEND_HOST: str = "http://localhost:3000"
@@ -54,19 +47,6 @@ class Settings(BaseSettings):
         ]
 
     PROJECT_NAME: str = "Leaf Disease Detection API"
-
-    EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
-
-    def _check_default_secret(self, var_name: str, value: str | None) -> None:
-        if value == "changethis":
-            message = (
-                f'The value of {var_name} is "changethis", '
-                "for security, please change it, at least for deployments."
-            )
-            if self.ENVIRONMENT == "local":
-                warnings.warn(message, stacklevel=1)
-            else:
-                raise ValueError(message)
 
 
 settings = Settings()  # type: ignore

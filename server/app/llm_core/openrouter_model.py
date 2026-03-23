@@ -15,6 +15,7 @@ OPENROUTER_DEFAULT_HEADERS = {
 }
 
 
+
 @lru_cache(maxsize=1)
 def get_openrouter_embedding_model():
     """Return configured OpenRouter embedding model."""
@@ -28,4 +29,5 @@ def get_openrouter_embedding_model():
         base_url=OPENROUTER_BASE_URL,
         api_key=settings.OPENROUTER_API_KEY,
         default_headers=OPENROUTER_DEFAULT_HEADERS,
+        max_tokens=settings.OPENROUTER_TEXT_MAX_TOKENS,
     )
