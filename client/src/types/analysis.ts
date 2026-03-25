@@ -72,5 +72,6 @@ export interface AnalysisHistory {
   analysis_type: "image" | "symptoms" | "care";
   timestamp: string;
   request_data: Record<string, unknown>;
+  response_data: Record<string, unknown>;
   preview?: string;
 }

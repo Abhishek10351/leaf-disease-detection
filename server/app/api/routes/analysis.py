@@ -461,15 +461,25 @@ async def get_analysis_history(
         # Format response
         formatted_history = []
         for item in history_list:
+            response_data = item.get("response_data", {})
             formatted_item = {
                 "id": item["_id"],
                 "analysis_type": item["analysis_type"],
                 "timestamp": item["timestamp"],
-                "request_data": item["request_data"]
+                "request_data": item.get("request_data", {}),
+                "response_data": response_data,
             }
             
-            # Add analysis preview if available
-            analysis_text = item["response_data"].get("analysis") or item["response_data"].get("care_tips", "")
+            # Build preview from the actual response fields for each analysis type.
+            analysis_text = (
+                response_data.get("quick_summary")
+                or response_data.get("quick_overview")
+                or response_data.get("primary_issue")
+                or response_data.get("likely_condition")
+                or response_data.get("detailed_analysis")
+                or response_data.get("detailed_guide")
+                or ""
+            )
             if analysis_text:
                 # Get first 200 characters as preview
                 formatted_item["preview"] = analysis_text[:200] + ("..." if len(analysis_text) > 200 else "")

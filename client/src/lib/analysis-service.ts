@@ -122,6 +122,18 @@ export class AnalysisService {
   }
 
   /**
+   * Get detailed analysis history item by ID
+   */
+  static async getAnalysisDetail(analysisId: string): Promise<AnalysisHistory> {
+    try {
+      const response = await api.get<AnalysisHistory>(`/analysis/history/${analysisId}`);
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error, 'Failed to fetch analysis detail'));
+    }
+  }
+
+  /**
    * Delete an uploaded image
    */
   static async deleteImage(imageId: string): Promise<void> {
