@@ -93,18 +93,33 @@ class LeafAnalysisUtils:
             raise RuntimeError("Model returned None response after retry")
         return response
 
-    def analyze_leaf_image(self, image_base64: str) -> ImageAnalysisLLMResponse:
+    @staticmethod
+    def _language_instruction(language: str) -> str:
+        """Return language-specific output instruction for narrative fields."""
+        if language == "hi":
+            return (
+                "Language requirement: Write all narrative/explanatory fields in Hindi (Devanagari). "
+                "Keep constrained enum fields exactly in English as required by schema "
+                "(health_status: Healthy/Mild/Moderate/Severe; confidence: High/Medium/Low; "
+                "care_difficulty: Easy/Moderate/Difficult)."
+            )
+        return "Language requirement: Write all response content in English."
+
+    def analyze_leaf_image(self, image_base64: str, language: str = "en") -> ImageAnalysisLLMResponse:
         """Analyze leaf image directly with vision model."""
+        language_instruction = self._language_instruction(language)
         prompt = (
             "You are an expert plant pathologist. Analyze this leaf image and provide a comprehensive diagnosis. "
             "Include: plant identification, severity, confidence, one primary issue, immediate actions, treatment plan, prevention strategy, and detailed markdown analysis with differential diagnosis."
+            f"\n\n{language_instruction}"
         )
         fallback_prompt = (
             "You are an expert plant pathologist. Analyze this leaf image and return a valid structured response. "
             "Keep each field complete but concise so the full response fits safely within output limits. "
             "Word limits: quick_summary 60-90 words, immediate_action 90-140 words, treatment 120-180 words, "
             "prevention 80-130 words, detailed_analysis 220-320 words in markdown with headings: Likely Diagnosis, "
-            "Why This Matches, Differential Diagnosis, Treatment Plan, Monitoring and Escalation."
+            "Why This Matches, Differential Diagnosis, Treatment Plan, Monitoring and Escalation. "
+            f"{language_instruction}"
         )
         model = get_vision_model()
         return self._invoke_structured_vision_with_retry(
@@ -116,9 +131,13 @@ class LeafAnalysisUtils:
         )
 
     def analyze_leaf_symptoms(
-        self, symptoms_description: str, plant_type: str = ""
+        self,
+        symptoms_description: str,
+        plant_type: str = "",
+        language: str = "en",
     ) -> SymptomsAnalysisLLMResponse:
         """Analyze leaf symptoms directly with qwen model."""
+        language_instruction = self._language_instruction(language)
         plant_context = f"Plant type: {plant_type}\n" if plant_type else ""
         prompt = (
             "You are an expert plant pathologist. "
@@ -127,6 +146,7 @@ class LeafAnalysisUtils:
             "Provide: likely_condition, severity, confidence, quick_summary (2-3 sentences), "
             "immediate_action (3-4 steps), treatment_steps (4-6 steps with timing), "
             "what_to_watch (with time windows), and detailed_analysis (markdown with Likely Cause, Supporting Symptoms, Differential Diagnosis, Treatment Roadmap, Escalation Signs)."
+            f"\n\n{language_instruction}"
         )
         fallback_prompt = (
             "You are an expert plant pathologist. Analyze these symptoms and return a valid structured response.\n\n"
@@ -134,7 +154,8 @@ class LeafAnalysisUtils:
             "Keep outputs detailed but concise to avoid truncation. "
             "Word limits: quick_summary 60-90 words, immediate_action 90-140 words, treatment_steps 120-180 words, "
             "what_to_watch 80-130 words, detailed_analysis 220-320 words in markdown with sections: Likely Cause, "
-            "Supporting Symptoms, Differential Diagnosis, Treatment Roadmap, Escalation Signs."
+            "Supporting Symptoms, Differential Diagnosis, Treatment Roadmap, Escalation Signs. "
+            f"{language_instruction}"
         )
         model = get_single_model()
         return self._invoke_structured_text_with_retry(
@@ -144,20 +165,23 @@ class LeafAnalysisUtils:
             fallback_prompt=fallback_prompt,
         )
 
-    def get_plant_care_tips(self, plant_type: str) -> PlantCareLLMResponse:
+    def get_plant_care_tips(self, plant_type: str, language: str = "en") -> PlantCareLLMResponse:
         """Get plant care tips directly with qwen model."""
+        language_instruction = self._language_instruction(language)
         prompt = (
             f"Provide comprehensive care guidelines for {plant_type}.\n\n"
             "Include: care_difficulty (Easy/Moderate/Difficult), quick_overview (2-3 sentences), "
             "essential_care (light, water, soil), key_tips (exactly 5 bullets), "
             "common_problems (exactly 3 bullets), and detailed_guide (markdown with Environment Setup, Routine Care, Seasonal Adjustments, Troubleshooting)."
+            f"\n\n{language_instruction}"
         )
         fallback_prompt = (
             f"Provide comprehensive care guidelines for {plant_type} and return a valid structured response.\n\n"
             "Keep content detailed but concise to avoid truncation. "
             "Word limits: quick_overview 60-90 words; essential_care.light 60-90 words; essential_care.water 60-90 words; "
             "essential_care.soil 60-90 words; each key_tip 20-35 words; each common_problem 30-50 words; "
-            "detailed_guide 220-320 words in markdown with Environment Setup, Routine Care, Seasonal Adjustments, Troubleshooting."
+            "detailed_guide 220-320 words in markdown with Environment Setup, Routine Care, Seasonal Adjustments, Troubleshooting. "
+            f"{language_instruction}"
         )
         model = get_single_model()
         return self._invoke_structured_text_with_retry(

@@ -119,7 +119,10 @@ async def analyze_uploaded_image(
         image_base64 = base64.b64encode(file_content).decode('utf-8')
 
         # Perform analysis
-        result = _get_leaf_analysis().analyze_leaf_image(image_base64=image_base64)
+        result = _get_leaf_analysis().analyze_leaf_image(
+            image_base64=image_base64,
+            language=request.language,
+        )
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Analysis failed: {str(e)}")
 
@@ -137,7 +140,8 @@ async def analyze_uploaded_image(
             "user_id": user_id,
             "request_data": {
                 "image_id": request.image_id,
-                "filename": image_doc["filename"]
+                "filename": image_doc["filename"],
+                "language": request.language,
             },
             "response_data": result.model_dump(),
             "timestamp": datetime.now()
@@ -160,7 +164,8 @@ async def analyze_symptoms(
     try:
         result = _get_leaf_analysis().analyze_leaf_symptoms(
             symptoms_description=request.symptoms_description,
-            plant_type=request.plant_type or ""
+            plant_type=request.plant_type or "",
+            language=request.language,
         )
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Analysis failed: {str(e)}")
@@ -178,7 +183,8 @@ async def analyze_symptoms(
             "user_id": user_id,
             "request_data": {
                 "symptoms_description": request.symptoms_description,
-                "plant_type": request.plant_type
+                "plant_type": request.plant_type,
+                "language": request.language,
             },
             "response_data": result.model_dump(),
             "timestamp": datetime.now()
@@ -199,7 +205,10 @@ async def get_care_tips(
     """Get care tips for a specific plant type"""
     # Get care tips
     try:
-        result = _get_leaf_analysis().get_plant_care_tips(plant_type=request.plant_type)
+        result = _get_leaf_analysis().get_plant_care_tips(
+            plant_type=request.plant_type,
+            language=request.language,
+        )
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Failed to get care tips: {str(e)}")
 
@@ -215,7 +224,8 @@ async def get_care_tips(
             "analysis_type": "care",
             "user_id": user_id,
             "request_data": {
-                "plant_type": request.plant_type
+                "plant_type": request.plant_type,
+                "language": request.language,
             },
             "response_data": result.model_dump(),
             "timestamp": datetime.now()
