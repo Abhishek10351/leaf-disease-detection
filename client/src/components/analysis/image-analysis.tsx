@@ -14,11 +14,17 @@ import { AnalysisResultViewer } from '@/components/analysis/analysis-result-view
 import { Scan, AlertCircle, CheckCircle } from 'lucide-react'
 import { finalBaseURL } from '@/app/utils/api'
 
+type ResponseLanguage = 'en' | 'hi'
+
 interface ImageAnalysisProps {
+  responseLanguage?: ResponseLanguage
   onAnalysisComplete?: (analysis: ImageAnalysisResponse) => void
 }
 
-export function ImageAnalysis({ onAnalysisComplete }: ImageAnalysisProps) {
+export function ImageAnalysis({
+  responseLanguage = 'en',
+  onAnalysisComplete,
+}: ImageAnalysisProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -56,7 +62,8 @@ export function ImageAnalysis({ onAnalysisComplete }: ImageAnalysisProps) {
 
     try {
       const analysisResponse = await AnalysisService.analyzeImage({
-        image_id: uploadedImage.image_id
+        image_id: uploadedImage.image_id,
+        language: responseLanguage,
       })
       setAnalysisStatus('Preparing diagnosis...')
       await new Promise(resolve => setTimeout(resolve, 180))

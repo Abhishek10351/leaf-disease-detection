@@ -36,7 +36,7 @@ export function SymptomsAnalysis({ onAnalysisComplete }: SymptomsAnalysisProps) 
     try {
       const analysisResponse = await AnalysisService.analyzeSymptoms({
         symptoms_description: symptomsDescription,
-        plant_type: plantType || undefined
+        plant_type: plantType || undefined,
       })
       setAnalysis(analysisResponse)
       onAnalysisComplete?.(analysisResponse)

@@ -147,7 +147,7 @@ export function AnalysisResultViewer({
                     </CardDescription>
                 )}
                 {showMetadata && (
-                    <div className="flex flex-wrap items-center gap-2 mt-3">
+                    <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t">
                         {isImageAnalysis(result) && (
                             <>
                                 <Badge
@@ -160,7 +160,7 @@ export function AnalysisResultViewer({
                                     {result.health_status}
                                 </Badge>
                                 <Badge variant="outline" className="text-xs">
-                                    {result.confidence}
+                                    Confidence: {result.confidence}
                                 </Badge>
                             </>
                         )}
@@ -177,7 +177,7 @@ export function AnalysisResultViewer({
                                     {result.severity}
                                 </Badge>
                                 <Badge variant="outline" className="text-xs">
-                                    {result.confidence}
+                                    Confidence: {result.confidence}
                                 </Badge>
                             </>
                         )}
@@ -201,21 +201,21 @@ export function AnalysisResultViewer({
                 {isImageAnalysis(result) && (
                     <div className="space-y-4">
                         <div className="grid gap-3">
-                            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                                <span className="text-sm font-medium text-muted-foreground">
-                                    Plant:
-                                </span>
-                                <span className="text-sm">
+                            <div className="p-3 bg-muted/50 rounded-lg">
+                                <div className="text-xs font-medium text-muted-foreground mb-1">
+                                    Plant
+                                </div>
+                                <div className="text-sm leading-relaxed">
                                     {result.plant_identification}
-                                </span>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                                <span className="text-sm font-medium text-muted-foreground">
-                                    Issue:
-                                </span>
-                                <span className="text-sm">
+                            <div className="p-3 bg-muted/50 rounded-lg">
+                                <div className="text-xs font-medium text-muted-foreground mb-1">
+                                    Issue
+                                </div>
+                                <div className="text-sm leading-relaxed">
                                     {result.primary_issue}
-                                </span>
+                                </div>
                             </div>
                         </div>
 
@@ -251,13 +251,13 @@ export function AnalysisResultViewer({
                 {/* Symptoms Analysis Sections */}
                 {isSymptomsAnalysis(result) && (
                     <div className="space-y-4">
-                        <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                            <span className="text-sm font-medium text-muted-foreground">
-                                Likely Condition:
-                            </span>
-                            <span className="text-sm">
+                        <div className="p-3 bg-muted/50 rounded-lg">
+                            <div className="text-xs font-medium text-muted-foreground mb-1">
+                                Likely Condition
+                            </div>
+                            <div className="text-sm leading-relaxed">
                                 {result.likely_condition}
-                            </span>
+                            </div>
                         </div>
 
                         <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">

@@ -6,9 +6,12 @@ import { ImageAnalysis } from '@/components/analysis/image-analysis'
 import { AnalysisHistory } from '@/components/analysis/analysis-history'
 import { History, ArrowLeft } from 'lucide-react'
 
+type ResponseLanguage = 'en' | 'hi'
+
 export default function AnalysisDashboard() {
   const [showHistory, setShowHistory] = useState(false)
   const [analysisCount, setAnalysisCount] = useState(0)
+  const [responseLanguage, setResponseLanguage] = useState<ResponseLanguage>('en')
 
   const handleAnalysisComplete = () => {
     setAnalysisCount(prev => prev + 1)
@@ -21,6 +24,31 @@ export default function AnalysisDashboard() {
           <div>
           <h1 className="text-xl sm:text-3xl font-semibold tracking-tight text-foreground">Leaf Disease Detection</h1>
           <p className="text-sm text-muted-foreground mt-0.5 sm:mt-1">Upload a leaf photo and get a diagnosis in one flow.</p>
+          {!showHistory && (
+            <div className="mt-3 flex items-center gap-2 rounded-md border p-1 w-fit">
+              <span className="px-2 text-xs font-medium text-muted-foreground">Response</span>
+              <Button
+                type="button"
+                size="sm"
+                className="h-7 px-2"
+                variant={responseLanguage === 'en' ? 'default' : 'ghost'}
+                onClick={() => setResponseLanguage('en')}
+                aria-label="English response"
+              >
+                EN
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="h-7 px-2"
+                variant={responseLanguage === 'hi' ? 'default' : 'ghost'}
+                onClick={() => setResponseLanguage('hi')}
+                aria-label="Hindi response"
+              >
+                HI
+              </Button>
+            </div>
+          )}
           </div>
           <Button
             variant="outline"
@@ -49,7 +77,10 @@ export default function AnalysisDashboard() {
           {showHistory ? (
             <AnalysisHistory key={analysisCount} />
           ) : (
-            <ImageAnalysis onAnalysisComplete={handleAnalysisComplete} />
+            <ImageAnalysis
+              responseLanguage={responseLanguage}
+              onAnalysisComplete={handleAnalysisComplete}
+            />
           )}
         </div>
       </div>

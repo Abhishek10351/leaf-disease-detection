@@ -1,12 +1,69 @@
 .markdown-viewer {
-  @apply leading-relaxed;
+  @apply leading-relaxed space-y-4;
 }
 
-/* Code highlighting overrides for dark mode */
+/* Improved headings */
+.markdown-viewer h1,
+.markdown-viewer h2 {
+  @apply scroll-mt-20;
+}
+
+.markdown-viewer h1:first-child,
+.markdown-viewer h2:first-child {
+  @apply mt-0;
+}
+
+.markdown-viewer h2 {
+  @apply border-b border-primary/20 pb-2;
+}
+
+/* Paragraph improvements */
+.markdown-viewer p {
+  @apply text-foreground/90;
+}
+
+.markdown-viewer p:last-child {
+  @apply mb-0;
+}
+
+/* List improvements */
+.markdown-viewer ul,
+.markdown-viewer ol {
+  @apply my-4;
+}
+
+.markdown-viewer li {
+  @apply mb-2 text-foreground;
+}
+
+.markdown-viewer ul ul,
+.markdown-viewer ol ul,
+.markdown-viewer ul ol,
+.markdown-viewer ol ol {
+  @apply mt-3 ml-4 mb-2;
+}
+
+/* Code highlighting */
+.markdown-viewer code {
+  @apply font-mono text-sm;
+}
+
+.markdown-viewer pre {
+  @apply relative my-4;
+}
+
+.markdown-viewer pre code {
+  @apply bg-transparent p-0;
+}
+
+.markdown-viewer pre code.hljs {
+  @apply p-4 rounded-lg block;
+}
+
+/* Code highlight colors for dark mode */
 @media (prefers-color-scheme: dark) {
   .markdown-viewer .hljs {
-    background-color: hsl(var(--muted)) !important;
-    color: hsl(var(--foreground)) !important;
+    @apply bg-muted/50 text-foreground rounded-lg;
   }
   
   .markdown-viewer .hljs-keyword,
@@ -14,7 +71,7 @@
   .markdown-viewer .hljs-literal,
   .markdown-viewer .hljs-section,
   .markdown-viewer .hljs-link {
-    color: hsl(var(--primary)) !important;
+    @apply text-primary font-semibold;
   }
   
   .markdown-viewer .hljs-string,
@@ -22,125 +79,85 @@
   .markdown-viewer .hljs-symbol,
   .markdown-viewer .hljs-bullet,
   .markdown-viewer .hljs-addition {
-    color: hsl(var(--green-600)) !important;
+    @apply text-emerald-400;
   }
   
   .markdown-viewer .hljs-number,
   .markdown-viewer .hljs-quote,
   .markdown-viewer .hljs-comment {
-    color: hsl(var(--muted-foreground)) !important;
+    @apply text-muted-foreground;
+  }
+  
+  .markdown-viewer .hljs-function,
+  .markdown-viewer .hljs-class {
+    @apply text-cyan-400;
   }
 }
 
-/* Custom markdown elements */
-.markdown-viewer h1,
-.markdown-viewer h2 {
-  @apply scroll-mt-20;
+/* Blockquote improvements */
+.markdown-viewer blockquote {
+  @apply bg-primary/5 dark:bg-primary/10 rounded-r-md my-4;
 }
 
-.markdown-viewer h2:first-child,
-.markdown-viewer h1:first-child {
-  @apply mt-0;
-}
-
-.markdown-viewer p:last-child {
-  @apply mb-0;
-}
-
-/* Custom list styling */
-.markdown-viewer ul ul,
-.markdown-viewer ol ul,
-.markdown-viewer ul ol,
-.markdown-viewer ol ol {
-  @apply mt-2 ml-4;
+.markdown-viewer blockquote p {
+  @apply italic text-muted-foreground mb-0;
 }
 
 /* Table improvements */
 .markdown-viewer table {
-  @apply w-full text-sm;
+  @apply w-full text-sm my-4 rounded-lg overflow-hidden;
+}
+
+.markdown-viewer thead {
+  @apply bg-muted/60;
 }
 
 .markdown-viewer th {
-  @apply bg-muted/50 font-semibold;
+  @apply font-semibold text-foreground px-4 py-2.5 text-left border-b-2 border-primary/20;
 }
 
-.markdown-viewer tr:nth-child(even) {
-  @apply bg-muted/25;
+.markdown-viewer td {
+  @apply px-4 py-2 border-b border-border/50;
 }
 
-/* Improved blockquote */
-.markdown-viewer blockquote {
-  @apply bg-muted/20 rounded-r-lg;
+.markdown-viewer tr:last-child td {
+  @apply border-b-0;
 }
 
-/* Better code blocks */
-.markdown-viewer pre {
-  @apply relative;
+.markdown-viewer tr:hover {
+  @apply bg-muted/30;
 }
 
-.markdown-viewer pre code {
-  @apply bg-transparent p-0;
+/* Strong and emphasis */
+.markdown-viewer strong {
+  @apply font-bold text-foreground;
+}
+
+.markdown-viewer em {
+  @apply italic;
+}
+
+.markdown-viewer strong em,
+.markdown-viewer em strong {
+  @apply font-bold italic;
+}
+
+/* Links */
+.markdown-viewer a {
+  @apply text-primary hover:text-primary/80 underline underline-offset-2 transition-colors;
+}
+
+/* Horizontal lines */
+.markdown-viewer hr {
+  @apply my-6 border-border/50;
+}
+
+/* First element margin */
+.markdown-viewer > :first-child {
+  @apply mt-0;
 }
 
 /* Checkbox lists */
 .markdown-viewer input[type="checkbox"] {
-  @apply mr-2 accent-primary;
-}
-
-/* Custom badges for plant analysis */
-.severity-healthy {
-  @apply bg-green-100 text-green-800 border-green-200;
-}
-
-.severity-mild {
-  @apply bg-yellow-100 text-yellow-800 border-yellow-200;
-}
-
-.severity-moderate {
-  @apply bg-orange-100 text-orange-800 border-orange-200;
-}
-
-.severity-severe {
-  @apply bg-red-100 text-red-800 border-red-200;
-}
-
-.difficulty-easy {
-  @apply bg-green-100 text-green-800 border-green-200;
-}
-
-.difficulty-moderate {
-  @apply bg-yellow-100 text-yellow-800 border-yellow-200;
-}
-
-.difficulty-difficult {
-  @apply bg-red-100 text-red-800 border-red-200;
-}
-
-/* Dark mode adjustments */
-.dark .severity-healthy {
-  @apply bg-green-900/30 text-green-400 border-green-800;
-}
-
-.dark .severity-mild {
-  @apply bg-yellow-900/30 text-yellow-400 border-yellow-800;
-}
-
-.dark .severity-moderate {
-  @apply bg-orange-900/30 text-orange-400 border-orange-800;
-}
-
-.dark .severity-severe {
-  @apply bg-red-900/30 text-red-400 border-red-800;
-}
-
-.dark .difficulty-easy {
-  @apply bg-green-900/30 text-green-400 border-green-800;
-}
-
-.dark .difficulty-moderate {
-  @apply bg-yellow-900/30 text-yellow-400 border-yellow-800;
-}
-
-.dark .difficulty-difficult {
-  @apply bg-red-900/30 text-red-400 border-red-800;
+  @apply mr-2 h-4 w-4 rounded border border-border accent-primary;
 }

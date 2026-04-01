@@ -39,7 +39,7 @@ export function CareTips({ onCareTipsComplete }: CareTipsProps) {
 
     try {
       const tipsResponse = await AnalysisService.getCareTips({
-        plant_type: plantType
+        plant_type: plantType,
       })
       setCareTips(tipsResponse)
       onCareTipsComplete?.(tipsResponse)

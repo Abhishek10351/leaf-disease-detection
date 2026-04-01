@@ -48,6 +48,7 @@ export interface PlantCareResponse {
 
 export interface ImageAnalysisRequest {
   image_id: string;
+  language?: "en" | "hi";
 }
 
 export interface SymptomsAnalysisRequest {
