@@ -1,4 +1,4 @@
-from typing import Type, TypeVar
+from typing import Optional, Type, TypeVar
 
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
@@ -105,22 +105,46 @@ class LeafAnalysisUtils:
             )
         return "Language requirement: Write all response content in English."
 
-    def analyze_leaf_image(self, image_base64: str, language: str = "en") -> ImageAnalysisLLMResponse:
+    @staticmethod
+    def _location_instruction(location_context: Optional[str]) -> str:
+        """Return location-aware agricultural guidance when climate data is available."""
+        if not location_context:
+            return ""
+
+        return (
+            "Location and climate requirement: Use the following local weather and location context to tailor the diagnosis and advice. "
+            "Prioritize diseases and management decisions that fit the user's climate, especially humidity-driven fungal pressure. "
+            "If forecast conditions include rain or sustained humidity, avoid recommending contact sprays immediately before rainfall and prefer timing-aware extension guidance. "
+            "If the climate suggests a humid subtropical or tropical pattern, bias the differential toward fungal diseases common in local crops such as rice, tea, banana, citrus, tomato, and leafy vegetables. "
+            f"Local context: {location_context}"
+        )
+
+    def analyze_leaf_image(
+        self,
+        image_base64: str,
+        language: str = "en",
+        location_context: Optional[str] = None,
+    ) -> ImageAnalysisLLMResponse:
         """Analyze leaf image directly with vision model."""
         language_instruction = self._language_instruction(language)
-        prompt = (
-            "You are an expert plant pathologist. Analyze this leaf image and provide a comprehensive diagnosis. "
-            "Include: plant identification, severity, confidence, one primary issue, immediate actions, treatment plan, prevention strategy, and detailed markdown analysis with differential diagnosis."
-            f"\n\n{language_instruction}"
-        )
-        fallback_prompt = (
-            "You are an expert plant pathologist. Analyze this leaf image and return a valid structured response. "
-            "Keep each field complete but concise so the full response fits safely within output limits. "
-            "Word limits: quick_summary 60-90 words, immediate_action 90-140 words, treatment 120-180 words, "
-            "prevention 80-130 words, detailed_analysis 220-320 words in markdown with headings: Likely Diagnosis, "
-            "Why This Matches, Differential Diagnosis, Treatment Plan, Monitoring and Escalation. "
-            f"{language_instruction}"
-        )
+        location_instruction = self._location_instruction(location_context)
+        prompt_parts = [
+            "You are an expert plant pathologist. Analyze this leaf image and provide a comprehensive diagnosis.",
+            "Include: plant identification, severity, confidence, one primary issue, immediate actions, treatment plan, prevention strategy, and detailed markdown analysis with differential diagnosis.",
+            language_instruction,
+        ]
+        fallback_parts = [
+            "You are an expert plant pathologist. Analyze this leaf image and return a valid structured response.",
+            "Keep each field complete but concise so the full response fits safely within output limits.",
+            "Word limits: quick_summary 60-90 words, immediate_action 90-140 words, treatment 120-180 words, prevention 80-130 words, detailed_analysis 220-320 words in markdown with headings: Likely Diagnosis, Why This Matches, Differential Diagnosis, Treatment Plan, Monitoring and Escalation.",
+            language_instruction,
+        ]
+        if location_instruction:
+            prompt_parts.append(location_instruction)
+            fallback_parts.append(location_instruction)
+
+        prompt = "\n\n".join(prompt_parts)
+        fallback_prompt = "\n\n".join(fallback_parts)
         model = get_vision_model()
         return self._invoke_structured_vision_with_retry(
             model=model,
@@ -135,28 +159,31 @@ class LeafAnalysisUtils:
         symptoms_description: str,
         plant_type: str = "",
         language: str = "en",
+        location_context: Optional[str] = None,
     ) -> SymptomsAnalysisLLMResponse:
         """Analyze leaf symptoms directly with qwen model."""
         language_instruction = self._language_instruction(language)
+        location_instruction = self._location_instruction(location_context)
         plant_context = f"Plant type: {plant_type}\n" if plant_type else ""
-        prompt = (
-            "You are an expert plant pathologist. "
-            "Analyze these symptoms and provide a comprehensive diagnosis.\n\n"
-            f"{plant_context}Symptoms: {symptoms_description}\n\n"
-            "Provide: likely_condition, severity, confidence, quick_summary (2-3 sentences), "
-            "immediate_action (3-4 steps), treatment_steps (4-6 steps with timing), "
-            "what_to_watch (with time windows), and detailed_analysis (markdown with Likely Cause, Supporting Symptoms, Differential Diagnosis, Treatment Roadmap, Escalation Signs)."
-            f"\n\n{language_instruction}"
-        )
-        fallback_prompt = (
-            "You are an expert plant pathologist. Analyze these symptoms and return a valid structured response.\n\n"
-            f"{plant_context}Symptoms: {symptoms_description}\n\n"
-            "Keep outputs detailed but concise to avoid truncation. "
-            "Word limits: quick_summary 60-90 words, immediate_action 90-140 words, treatment_steps 120-180 words, "
-            "what_to_watch 80-130 words, detailed_analysis 220-320 words in markdown with sections: Likely Cause, "
-            "Supporting Symptoms, Differential Diagnosis, Treatment Roadmap, Escalation Signs. "
-            f"{language_instruction}"
-        )
+        prompt_parts = [
+            "You are an expert plant pathologist. Analyze these symptoms and provide a comprehensive diagnosis.",
+            f"{plant_context}Symptoms: {symptoms_description}",
+            "Provide: likely_condition, severity, confidence, quick_summary (2-3 sentences), immediate_action (3-4 steps), treatment_steps (4-6 steps with timing), what_to_watch (with time windows), and detailed_analysis (markdown with Likely Cause, Supporting Symptoms, Differential Diagnosis, Treatment Roadmap, Escalation Signs).",
+            language_instruction,
+        ]
+        fallback_parts = [
+            "You are an expert plant pathologist. Analyze these symptoms and return a valid structured response.",
+            f"{plant_context}Symptoms: {symptoms_description}",
+            "Keep outputs detailed but concise to avoid truncation.",
+            "Word limits: quick_summary 60-90 words, immediate_action 90-140 words, treatment_steps 120-180 words, what_to_watch 80-130 words, detailed_analysis 220-320 words in markdown with sections: Likely Cause, Supporting Symptoms, Differential Diagnosis, Treatment Roadmap, Escalation Signs.",
+            language_instruction,
+        ]
+        if location_instruction:
+            prompt_parts.append(location_instruction)
+            fallback_parts.append(location_instruction)
+
+        prompt = "\n\n".join(prompt_parts)
+        fallback_prompt = "\n\n".join(fallback_parts)
         model = get_single_model()
         return self._invoke_structured_text_with_retry(
             model=model,
@@ -165,24 +192,32 @@ class LeafAnalysisUtils:
             fallback_prompt=fallback_prompt,
         )
 
-    def get_plant_care_tips(self, plant_type: str, language: str = "en") -> PlantCareLLMResponse:
+    def get_plant_care_tips(
+        self,
+        plant_type: str,
+        language: str = "en",
+        location_context: Optional[str] = None,
+    ) -> PlantCareLLMResponse:
         """Get plant care tips directly with qwen model."""
         language_instruction = self._language_instruction(language)
-        prompt = (
-            f"Provide comprehensive care guidelines for {plant_type}.\n\n"
-            "Include: care_difficulty (Easy/Moderate/Difficult), quick_overview (2-3 sentences), "
-            "essential_care (light, water, soil), key_tips (exactly 5 bullets), "
-            "common_problems (exactly 3 bullets), and detailed_guide (markdown with Environment Setup, Routine Care, Seasonal Adjustments, Troubleshooting)."
-            f"\n\n{language_instruction}"
-        )
-        fallback_prompt = (
-            f"Provide comprehensive care guidelines for {plant_type} and return a valid structured response.\n\n"
-            "Keep content detailed but concise to avoid truncation. "
-            "Word limits: quick_overview 60-90 words; essential_care.light 60-90 words; essential_care.water 60-90 words; "
-            "essential_care.soil 60-90 words; each key_tip 20-35 words; each common_problem 30-50 words; "
-            "detailed_guide 220-320 words in markdown with Environment Setup, Routine Care, Seasonal Adjustments, Troubleshooting. "
-            f"{language_instruction}"
-        )
+        location_instruction = self._location_instruction(location_context)
+        prompt_parts = [
+            f"Provide comprehensive care guidelines for {plant_type}.",
+            "Include: care_difficulty (Easy/Moderate/Difficult), quick_overview (2-3 sentences), essential_care (light, water, soil), key_tips (exactly 5 bullets), common_problems (exactly 3 bullets), and detailed_guide (markdown with Environment Setup, Routine Care, Seasonal Adjustments, Troubleshooting).",
+            language_instruction,
+        ]
+        fallback_parts = [
+            f"Provide comprehensive care guidelines for {plant_type} and return a valid structured response.",
+            "Keep content detailed but concise to avoid truncation.",
+            "Word limits: quick_overview 60-90 words; essential_care.light 60-90 words; essential_care.water 60-90 words; essential_care.soil 60-90 words; each key_tip 20-35 words; each common_problem 30-50 words; detailed_guide 220-320 words in markdown with Environment Setup, Routine Care, Seasonal Adjustments, Troubleshooting.",
+            language_instruction,
+        ]
+        if location_instruction:
+            prompt_parts.append(location_instruction)
+            fallback_parts.append(location_instruction)
+
+        prompt = "\n\n".join(prompt_parts)
+        fallback_prompt = "\n\n".join(fallback_parts)
         model = get_single_model()
         return self._invoke_structured_text_with_retry(
             model=model,

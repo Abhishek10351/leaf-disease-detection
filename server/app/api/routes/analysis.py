@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from fastapi import APIRouter, HTTPException, Request, File, UploadFile
 from fastapi.responses import FileResponse
@@ -20,12 +21,12 @@ from app.models.analysis import (
     PlantCareLLMResponse,
 )
 from app.llm_core import get_leaf_analysis
+from app.utils.weather import build_location_weather_context
 
 
 def _get_leaf_analysis():
     """Return cached analysis service instance."""
     return get_leaf_analysis()
-
 router = APIRouter(prefix="/analysis", tags=["leaf-analysis"])
 
 # Create uploads directory if it doesn't exist
@@ -107,6 +108,8 @@ async def analyze_uploaded_image(
     if not image_doc:
         raise HTTPException(status_code=404, detail="Image not found")
 
+    weather_context = await asyncio.to_thread(build_location_weather_context)
+
     # Read image file from disk
     file_path = Path(image_doc["file_path"])
     if not file_path.exists():
@@ -122,6 +125,7 @@ async def analyze_uploaded_image(
         result = _get_leaf_analysis().analyze_leaf_image(
             image_base64=image_base64,
             language=request.language,
+            location_context=weather_context.weather_summary if weather_context else None,
         )
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Analysis failed: {str(e)}")
@@ -142,6 +146,7 @@ async def analyze_uploaded_image(
                 "image_id": request.image_id,
                 "filename": image_doc["filename"],
                 "language": request.language,
+                "weather_context": weather_context.weather_summary if weather_context else None,
             },
             "response_data": result.model_dump(),
             "timestamp": datetime.now()
@@ -160,12 +165,15 @@ async def analyze_symptoms(
     request: SymptomsAnalysisRequest
 ):
     """Analyze plant symptoms based on description"""
+    weather_context = await asyncio.to_thread(build_location_weather_context)
+
     # Perform symptoms analysis
     try:
         result = _get_leaf_analysis().analyze_leaf_symptoms(
             symptoms_description=request.symptoms_description,
             plant_type=request.plant_type or "",
             language=request.language,
+            location_context=weather_context.weather_summary if weather_context else None,
         )
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Analysis failed: {str(e)}")
@@ -185,6 +193,7 @@ async def analyze_symptoms(
                 "symptoms_description": request.symptoms_description,
                 "plant_type": request.plant_type,
                 "language": request.language,
+                "weather_context": weather_context.weather_summary if weather_context else None,
             },
             "response_data": result.model_dump(),
             "timestamp": datetime.now()
@@ -203,11 +212,14 @@ async def get_care_tips(
     request: PlantCareRequest
 ):
     """Get care tips for a specific plant type"""
+    weather_context = await asyncio.to_thread(build_location_weather_context)
+
     # Get care tips
     try:
         result = _get_leaf_analysis().get_plant_care_tips(
             plant_type=request.plant_type,
             language=request.language,
+            location_context=weather_context.weather_summary if weather_context else None,
         )
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Failed to get care tips: {str(e)}")
@@ -226,6 +238,7 @@ async def get_care_tips(
             "request_data": {
                 "plant_type": request.plant_type,
                 "language": request.language,
+                "weather_context": weather_context.weather_summary if weather_context else None,
             },
             "response_data": result.model_dump(),
             "timestamp": datetime.now()
