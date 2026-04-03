@@ -16,6 +16,18 @@ import { finalBaseURL } from '@/app/utils/api'
 
 type ResponseLanguage = 'en' | 'hi'
 
+type SampleImage = {
+  id: string
+  name: string
+  src: string
+}
+
+const SAMPLE_IMAGES: SampleImage[] = [
+  { id: 'sample-1', name: 'Sample Leaf 1', src: 'sample-1.jpg' },
+  { id: 'sample-2', name: 'Sample Leaf 2', src: 'sample-2.jpg' },
+  { id: 'sample-3', name: 'Sample Leaf 3', src: 'sample-3.jpg' },
+]
+
 interface ImageAnalysisProps {
   responseLanguage?: ResponseLanguage
   onAnalysisComplete?: (analysis: ImageAnalysisResponse) => void
@@ -33,6 +45,7 @@ export function ImageAnalysis({
   const [analysis, setAnalysis] = useState<ImageAnalysisResponse | null>(null)
   const [highlightResult, setHighlightResult] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [sampleUploads, setSampleUploads] = useState<Record<string, ImageUploadResponse>>({})
   const resultRef = useRef<HTMLDivElement>(null)
 
   const handleUpload = async () => {
@@ -73,6 +86,44 @@ export function ImageAnalysis({
       setError(err instanceof Error ? err.message : 'Analysis failed')
     } finally {
       setIsAnalyzing(false)
+      setAnalysisStatus(null)
+    }
+  }
+
+  const handleUseSample = async (sample: SampleImage) => {
+    if (isUploading || isAnalyzing) return
+
+    setError(null)
+    setAnalysis(null)
+    setHighlightResult(false)
+
+    const cached = sampleUploads[sample.id]
+    if (cached) {
+      setUploadedImage(cached)
+      setSelectedFile(null)
+      return
+    }
+
+    setIsUploading(true)
+    setAnalysisStatus(`Loading ${sample.name}...`)
+
+    try {
+      const response = await fetch(sample.src)
+      if (!response.ok) {
+        throw new Error(`Failed to load ${sample.name}`)
+      }
+
+      const blob = await response.blob()
+      const file = new File([blob], `${sample.id}.jpg`, { type: blob.type || 'image/jpeg' })
+      const uploadResponse = await AnalysisService.uploadImage(file)
+
+      setSampleUploads((prev) => ({ ...prev, [sample.id]: uploadResponse }))
+      setUploadedImage(uploadResponse)
+      setSelectedFile(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load sample image')
+    } finally {
+      setIsUploading(false)
       setAnalysisStatus(null)
     }
   }
@@ -130,6 +181,40 @@ export function ImageAnalysis({
         <CardContent className="space-y-4 sm:space-y-6">
           {!uploadedImage ? (
             <div className="space-y-4 sm:space-y-5">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">Try default samples</p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {SAMPLE_IMAGES.map((sample) => (
+                    <button
+                      key={sample.id}
+                      type="button"
+                      onClick={() => void handleUseSample(sample)}
+                      disabled={isUploading || isAnalyzing}
+                      className="group overflow-hidden rounded-lg border bg-white text-left transition hover:border-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <div className="relative h-24 w-full">
+                        <Image
+                          src={`/sample-images/${sample.src}`}
+                          alt={sample.name}
+                          fill
+                          className="object-cover"
+                          sizes="(max-width: 640px) 100vw, 33vw"
+                        />
+                      </div>
+                      <div className="p-2 text-xs font-medium text-muted-foreground group-hover:text-foreground">
+                        {sample.name}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                <span>or upload your own image</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+
               <FileInput
                 selectedFile={selectedFile}
                 onFileSelect={setSelectedFile}
