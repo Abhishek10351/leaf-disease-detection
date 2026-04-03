@@ -38,11 +38,11 @@ class ImageAnalysisLLMResponse(BaseModel):
         ..., 
         description="Plant species/family with key identifying features"
     )
-    health_status: str = Field(
+    health_status: Literal["Healthy", "Mild", "Moderate", "Severe"] = Field(
         ..., 
         description="Health status: must be one of Healthy, Mild, Moderate, or Severe"
     )
-    confidence: str = Field(
+    confidence: Literal["High", "Medium", "Low"] = Field(
         ..., 
         description="Confidence level: must be one of High, Medium, or Low"
     )
@@ -78,11 +78,11 @@ class SymptomsAnalysisLLMResponse(BaseModel):
         ..., 
         description="Most probable disease/issue with brief description"
     )
-    severity: str = Field(
+    severity: Literal["Healthy", "Mild", "Moderate", "Severe"] = Field(
         ..., 
         description="Severity level: must be one of Healthy, Mild, Moderate, or Severe"
     )
-    confidence: str = Field(
+    confidence: Literal["High", "Medium", "Low"] = Field(
         ..., 
         description="Confidence level: must be one of High, Medium, or Low"
     )
@@ -126,7 +126,7 @@ class EssentialCare(BaseModel):
 
 class PlantCareLLMResponse(BaseModel):
     """Comprehensive care guidelines for specific plant types."""
-    care_difficulty: str = Field(
+    care_difficulty: Literal["Easy", "Moderate", "Difficult"] = Field(
         ..., 
         description="Care difficulty level: must be one of Easy, Moderate, or Difficult"
     )

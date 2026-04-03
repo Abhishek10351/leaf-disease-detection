@@ -223,27 +223,33 @@ export function AnalysisResultViewer({
                             <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-3">
                                 🚨 Immediate Action Required
                             </h4>
-                            <div className="text-sm text-yellow-700 dark:text-yellow-300 whitespace-pre-line leading-relaxed">
-                                {result.immediate_action}
-                            </div>
+                            <MarkdownViewer
+                                content={result.immediate_action}
+                                compact
+                                className="prose prose-sm max-w-none text-sm"
+                            />
                         </div>
 
                         <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                             <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-3">
                                 💊 Treatment Plan
                             </h4>
-                            <div className="text-sm text-blue-700 dark:text-blue-300 whitespace-pre-line leading-relaxed">
-                                {result.treatment}
-                            </div>
+                            <MarkdownViewer
+                                content={result.treatment}
+                                compact
+                                className="prose prose-sm max-w-none text-sm"
+                            />
                         </div>
 
                         <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                             <h4 className="text-sm font-semibold text-green-800 dark:text-green-200 mb-3">
                                 🛡️ Prevention Strategies
                             </h4>
-                            <div className="text-sm text-green-700 dark:text-green-300 whitespace-pre-line leading-relaxed">
-                                {result.prevention}
-                            </div>
+                            <MarkdownViewer
+                                content={result.prevention}
+                                compact
+                                className="prose prose-sm max-w-none text-sm"
+                            />
                         </div>
                     </div>
                 )}
@@ -264,27 +270,33 @@ export function AnalysisResultViewer({
                             <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-3">
                                 🚨 Immediate Action Required
                             </h4>
-                            <div className="text-sm text-yellow-700 dark:text-yellow-300 whitespace-pre-line leading-relaxed">
-                                {result.immediate_action}
-                            </div>
+                            <MarkdownViewer
+                                content={result.immediate_action}
+                                compact
+                                className="prose prose-sm max-w-none text-sm"
+                            />
                         </div>
 
                         <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                             <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-3">
                                 💊 Treatment Steps
                             </h4>
-                            <div className="text-sm text-blue-700 dark:text-blue-300 whitespace-pre-line leading-relaxed">
-                                {result.treatment_steps}
-                            </div>
+                            <MarkdownViewer
+                                content={result.treatment_steps}
+                                compact
+                                className="prose prose-sm max-w-none text-sm"
+                            />
                         </div>
 
                         <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
                             <h4 className="text-sm font-semibold text-purple-800 dark:text-purple-200 mb-3">
                                 👀 What to Monitor
                             </h4>
-                            <div className="text-sm text-purple-700 dark:text-purple-300 whitespace-pre-line leading-relaxed">
-                                {result.what_to_watch}
-                            </div>
+                            <MarkdownViewer
+                                content={result.what_to_watch}
+                                compact
+                                className="prose prose-sm max-w-none text-sm"
+                            />
                         </div>
                     </div>
                 )}

@@ -116,6 +116,9 @@ class LeafAnalysisUtils:
             "Prioritize diseases and management decisions that fit the user's climate, especially humidity-driven fungal pressure. "
             "If forecast conditions include rain or sustained humidity, avoid recommending contact sprays immediately before rainfall and prefer timing-aware extension guidance. "
             "If the climate suggests a humid subtropical or tropical pattern, bias the differential toward fungal diseases common in local crops such as rice, tea, banana, citrus, tomato, and leafy vegetables. "
+            "Mandatory output rule: Keep quick_summary leaf-first (first sentence must describe observed leaf symptoms/details), and include weather impact in the next sentence. "
+            "Also mention weather impact in immediate_action (or treatment_steps for symptom analysis). "
+            "Use concrete weather words such as humidity, rain, precipitation, forecast, or climate. "
             f"Local context: {location_context}"
         )
 

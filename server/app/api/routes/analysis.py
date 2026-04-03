@@ -27,6 +27,21 @@ from app.utils.weather import build_location_weather_context
 def _get_leaf_analysis():
     """Return cached analysis service instance."""
     return get_leaf_analysis()
+
+
+def _contains_weather_reference(text: Optional[str]) -> bool:
+    if not text:
+        return False
+    normalized = text.lower()
+    keywords = ["weather", "rain", "rainfall", "humidity", "forecast", "precipitation", "climate"]
+    return any(keyword in normalized for keyword in keywords)
+
+
+def _build_weather_note(weather_context: str) -> str:
+    first_sentence = weather_context.split(".")[0].strip()
+    if not first_sentence:
+        return "Weather note: Local weather conditions should guide spray timing and disease-risk prioritization."
+    return f"Weather note: {first_sentence}."
 router = APIRouter(prefix="/analysis", tags=["leaf-analysis"])
 
 # Create uploads directory if it doesn't exist
@@ -127,6 +142,13 @@ async def analyze_uploaded_image(
             language=request.language,
             location_context=weather_context.weather_summary if weather_context else None,
         )
+
+        if weather_context and weather_context.weather_summary:
+            weather_note = _build_weather_note(weather_context.weather_summary)
+            if not _contains_weather_reference(result.quick_summary):
+                result.quick_summary = f"{result.quick_summary} {weather_note}".strip()
+            if not _contains_weather_reference(result.immediate_action):
+                result.immediate_action = f"{result.immediate_action}\n\n{weather_note}".strip()
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Analysis failed: {str(e)}")
 

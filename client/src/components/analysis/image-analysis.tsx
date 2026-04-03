@@ -108,7 +108,7 @@ export function ImageAnalysis({
     setAnalysisStatus(`Loading ${sample.name}...`)
 
     try {
-      const response = await fetch(sample.src)
+      const response = await fetch(`/sample-images/${sample.src}`)
       if (!response.ok) {
         throw new Error(`Failed to load ${sample.name}`)
       }
