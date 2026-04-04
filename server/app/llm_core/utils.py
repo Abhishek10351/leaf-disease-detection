@@ -99,11 +99,41 @@ class LeafAnalysisUtils:
         if language == "hi":
             return (
                 "Language requirement: Write all narrative/explanatory fields in Hindi (Devanagari). "
+                "Use simple daily Hindi words that common farmers can understand; avoid overly literary or highly technical vocabulary. "
                 "Keep constrained enum fields exactly in English as required by schema "
                 "(health_status: Healthy/Mild/Moderate/Severe; confidence: High/Medium/Low; "
                 "care_difficulty: Easy/Moderate/Difficult)."
             )
-        return "Language requirement: Write all response content in English."
+        if language == "as":
+            return (
+                "Language requirement: Write all narrative/explanatory fields in Assamese (Axomiya, Assamese script). "
+                "Use simple daily Assamese words that common farmers can understand; avoid overly literary or highly technical vocabulary. "
+                "Keep constrained enum fields exactly in English as required by schema "
+                "(health_status: Healthy/Mild/Moderate/Severe; confidence: High/Medium/Low; "
+                "care_difficulty: Easy/Moderate/Difficult)."
+            )
+        if language == "brx":
+            return (
+                "Language requirement: Write all narrative/explanatory fields in Bodo language EXCLUSIVELY in Devanagari script generally used in BODO language. "
+                "Do NOT use Latin characters or any other script for Bodo narrative fields. "
+                "Use simple daily Bodo words that common farmers can understand; avoid overly literary or highly technical vocabulary. "
+                "Keep constrained enum fields exactly in English as required by schema "
+                "(health_status: Healthy/Mild/Moderate/Severe; confidence: High/Medium/Low; "
+                "care_difficulty: Easy/Moderate/Difficult)."
+            )
+        return (
+            "Language requirement: Write all response content in English. "
+            "Use very simple everyday English that common farmers can understand; avoid advanced or technical jargon."
+        )
+
+    @staticmethod
+    def _simplicity_instruction() -> str:
+        """Force plain-language, easy-to-understand communication style."""
+        return (
+            "Simplicity requirement: Use short, clear sentences and common everyday words. "
+            "Explain any unavoidable technical term in plain language immediately. "
+            "Keep tone practical, direct, and easy for non-experts to follow."
+        )
 
     @staticmethod
     def _location_instruction(location_context: Optional[str]) -> str:
@@ -130,17 +160,20 @@ class LeafAnalysisUtils:
     ) -> ImageAnalysisLLMResponse:
         """Analyze leaf image directly with vision model."""
         language_instruction = self._language_instruction(language)
+        simplicity_instruction = self._simplicity_instruction()
         location_instruction = self._location_instruction(location_context)
         prompt_parts = [
             "You are an expert plant pathologist. Analyze this leaf image and provide a comprehensive diagnosis.",
             "Include: plant identification, severity, confidence, one primary issue, immediate actions, treatment plan, prevention strategy, and detailed markdown analysis with differential diagnosis.",
             language_instruction,
+            simplicity_instruction,
         ]
         fallback_parts = [
             "You are an expert plant pathologist. Analyze this leaf image and return a valid structured response.",
             "Keep each field complete but concise so the full response fits safely within output limits.",
             "Word limits: quick_summary 60-90 words, immediate_action 90-140 words, treatment 120-180 words, prevention 80-130 words, detailed_analysis 220-320 words in markdown with headings: Likely Diagnosis, Why This Matches, Differential Diagnosis, Treatment Plan, Monitoring and Escalation.",
             language_instruction,
+            simplicity_instruction,
         ]
         if location_instruction:
             prompt_parts.append(location_instruction)
@@ -166,6 +199,7 @@ class LeafAnalysisUtils:
     ) -> SymptomsAnalysisLLMResponse:
         """Analyze leaf symptoms directly with qwen model."""
         language_instruction = self._language_instruction(language)
+        simplicity_instruction = self._simplicity_instruction()
         location_instruction = self._location_instruction(location_context)
         plant_context = f"Plant type: {plant_type}\n" if plant_type else ""
         prompt_parts = [
@@ -173,6 +207,7 @@ class LeafAnalysisUtils:
             f"{plant_context}Symptoms: {symptoms_description}",
             "Provide: likely_condition, severity, confidence, quick_summary (2-3 sentences), immediate_action (3-4 steps), treatment_steps (4-6 steps with timing), what_to_watch (with time windows), and detailed_analysis (markdown with Likely Cause, Supporting Symptoms, Differential Diagnosis, Treatment Roadmap, Escalation Signs).",
             language_instruction,
+            simplicity_instruction,
         ]
         fallback_parts = [
             "You are an expert plant pathologist. Analyze these symptoms and return a valid structured response.",
@@ -180,6 +215,7 @@ class LeafAnalysisUtils:
             "Keep outputs detailed but concise to avoid truncation.",
             "Word limits: quick_summary 60-90 words, immediate_action 90-140 words, treatment_steps 120-180 words, what_to_watch 80-130 words, detailed_analysis 220-320 words in markdown with sections: Likely Cause, Supporting Symptoms, Differential Diagnosis, Treatment Roadmap, Escalation Signs.",
             language_instruction,
+            simplicity_instruction,
         ]
         if location_instruction:
             prompt_parts.append(location_instruction)
@@ -203,17 +239,20 @@ class LeafAnalysisUtils:
     ) -> PlantCareLLMResponse:
         """Get plant care tips directly with qwen model."""
         language_instruction = self._language_instruction(language)
+        simplicity_instruction = self._simplicity_instruction()
         location_instruction = self._location_instruction(location_context)
         prompt_parts = [
             f"Provide comprehensive care guidelines for {plant_type}.",
             "Include: care_difficulty (Easy/Moderate/Difficult), quick_overview (2-3 sentences), essential_care (light, water, soil), key_tips (exactly 5 bullets), common_problems (exactly 3 bullets), and detailed_guide (markdown with Environment Setup, Routine Care, Seasonal Adjustments, Troubleshooting).",
             language_instruction,
+            simplicity_instruction,
         ]
         fallback_parts = [
             f"Provide comprehensive care guidelines for {plant_type} and return a valid structured response.",
             "Keep content detailed but concise to avoid truncation.",
             "Word limits: quick_overview 60-90 words; essential_care.light 60-90 words; essential_care.water 60-90 words; essential_care.soil 60-90 words; each key_tip 20-35 words; each common_problem 30-50 words; detailed_guide 220-320 words in markdown with Environment Setup, Routine Care, Seasonal Adjustments, Troubleshooting.",
             language_instruction,
+            simplicity_instruction,
         ]
         if location_instruction:
             prompt_parts.append(location_instruction)

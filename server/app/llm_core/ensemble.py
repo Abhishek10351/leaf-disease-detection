@@ -11,7 +11,7 @@ _HEADERS = {
 }
 
 # Single active model for lower latency.
-ACTIVE_MODEL_ID = "nvidia/nemotron-nano-12b-v2-vl:free"
+ACTIVE_MODEL_ID = "qwen/qwen3.6-plus:free"
 
 
 

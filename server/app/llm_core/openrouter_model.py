@@ -24,10 +24,11 @@ def get_openrouter_embedding_model():
 
     from langchain_openai import OpenAIEmbeddings
 
+    embedding_model = getattr(settings, "OPENROUTER_EMBEDDING_MODEL", "text-embedding-3-small")
+
     return OpenAIEmbeddings(
-        model=settings.OPENROUTER_EMBEDDING_MODEL,
+        model=embedding_model,
         base_url=OPENROUTER_BASE_URL,
         api_key=settings.OPENROUTER_API_KEY,
         default_headers=OPENROUTER_DEFAULT_HEADERS,
-        max_tokens=settings.OPENROUTER_TEXT_MAX_TOKENS,
     )

@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "FastAPI + Next.js Template",
-    description: "Production-ready full-stack template with FastAPI, Next.js, and MongoDB",
+    title: "Leaf Disease Dectection",
+    description: "An LLM based assistant to help analyse leaf disease using images",
 };
 
 export default function RootLayout({

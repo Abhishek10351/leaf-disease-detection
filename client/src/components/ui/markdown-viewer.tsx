@@ -12,7 +12,25 @@ interface MarkdownViewerProps {
   compact?: boolean
 }
 
+const normalizeMarkdown = (raw: string): string => {
+  if (!raw) return ''
+
+  return raw
+    .replace(/\r\n/g, '\n')
+    // Convert numeric markers like "1)" to markdown-compatible "1."
+    .replace(/(^|\n)(\s*)(\d+)\)\s+/g, '$1$2$3. ')
+    // Split inline numbered lists into separate lines
+    .replace(/(\S)\s+(\d+[\.)]\s+)/g, '$1\n$2')
+    // Split inline bullets into separate lines
+    .replace(/(\S)\s+([*-]\s+)/g, '$1\n$2')
+    // Ensure markdown headers are on a new line
+    .replace(/(\S)\s+(#{1,6}\s)/g, '$1\n\n$2')
+    .trim()
+}
+
 const MarkdownViewer = memo(({ content, className, compact = false }: MarkdownViewerProps) => {
+  const normalizedContent = normalizeMarkdown(content)
+
   return (
     <div className={cn(
       "markdown-viewer prose prose-sm dark:prose-invert max-w-none",
@@ -215,7 +233,7 @@ const MarkdownViewer = memo(({ content, className, compact = false }: MarkdownVi
           ),
         }}
       >
-        {content}
+        {normalizedContent}
       </ReactMarkdown>
     </div>
   )

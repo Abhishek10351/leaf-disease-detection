@@ -14,7 +14,7 @@ import { AnalysisResultViewer } from '@/components/analysis/analysis-result-view
 import { Scan, AlertCircle, CheckCircle } from 'lucide-react'
 import { finalBaseURL } from '@/app/utils/api'
 
-type ResponseLanguage = 'en' | 'hi'
+type ResponseLanguage = 'en' | 'hi' | 'as' | 'brx'
 
 type SampleImage = {
   id: string

@@ -6,7 +6,7 @@ import { ImageAnalysis } from '@/components/analysis/image-analysis'
 import { AnalysisHistory } from '@/components/analysis/analysis-history'
 import { History, ArrowLeft } from 'lucide-react'
 
-type ResponseLanguage = 'en' | 'hi'
+type ResponseLanguage = 'en' | 'hi' | 'as' | 'brx'
 
 export default function AnalysisDashboard() {
   const [showHistory, setShowHistory] = useState(false)
@@ -47,6 +47,26 @@ export default function AnalysisDashboard() {
                   aria-label="Hindi response"
                 >
                   HI
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-7 px-2"
+                  variant={responseLanguage === 'as' ? 'default' : 'ghost'}
+                  onClick={() => setResponseLanguage('as')}
+                  aria-label="Assamese response"
+                >
+                  AS
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-7 px-2"
+                  variant={responseLanguage === 'brx' ? 'default' : 'ghost'}
+                  onClick={() => setResponseLanguage('brx')}
+                  aria-label="Boro response"
+                >
+                  BRX
                 </Button>
               </div>
             </div>

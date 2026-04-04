@@ -142,9 +142,13 @@ export function AnalysisResultViewer({
                     </div>
                 )}
                 {isPlantCare(result) && (
-                    <CardDescription className="text-base">
-                        {result.quick_overview}
-                    </CardDescription>
+                    <div className="mt-2">
+                        <MarkdownViewer
+                            content={result.quick_overview}
+                            compact
+                            className="prose prose-sm max-w-none text-sm"
+                        />
+                    </div>
                 )}
                 {showMetadata && (
                     <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t">
@@ -313,25 +317,31 @@ export function AnalysisResultViewer({
                                     <div className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">
                                         ☀️ Light Requirements
                                     </div>
-                                    <div className="text-sm text-amber-700 dark:text-amber-300 leading-relaxed">
-                                        {result.essential_care.light}
-                                    </div>
+                                    <MarkdownViewer
+                                        content={result.essential_care.light}
+                                        compact
+                                        className="prose prose-sm max-w-none text-sm text-amber-700 dark:text-amber-300"
+                                    />
                                 </div>
                                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                                     <div className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
                                         💧 Watering Guidelines
                                     </div>
-                                    <div className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
-                                        {result.essential_care.water}
-                                    </div>
+                                    <MarkdownViewer
+                                        content={result.essential_care.water}
+                                        compact
+                                        className="prose prose-sm max-w-none text-sm text-blue-700 dark:text-blue-300"
+                                    />
                                 </div>
                                 <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                                     <div className="text-sm font-semibold text-green-800 dark:text-green-200 mb-2">
                                         🌿 Soil Requirements
                                     </div>
-                                    <div className="text-sm text-green-700 dark:text-green-300 leading-relaxed">
-                                        {result.essential_care.soil}
-                                    </div>
+                                    <MarkdownViewer
+                                        content={result.essential_care.soil}
+                                        compact
+                                        className="prose prose-sm max-w-none text-sm text-green-700 dark:text-green-300"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -347,9 +357,11 @@ export function AnalysisResultViewer({
                                             key={index}
                                             className="p-3 bg-muted/30 rounded-lg border-l-4 border-primary"
                                         >
-                                            <div className="text-sm leading-relaxed">
-                                                {tip}
-                                            </div>
+                                            <MarkdownViewer
+                                                content={tip}
+                                                compact
+                                                className="prose prose-sm max-w-none text-sm"
+                                            />
                                         </div>
                                     ))}
                                 </div>
@@ -367,9 +379,11 @@ export function AnalysisResultViewer({
                                             key={index}
                                             className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
                                         >
-                                            <div className="text-sm text-red-800 dark:text-red-200 leading-relaxed">
-                                                {problem}
-                                            </div>
+                                            <MarkdownViewer
+                                                content={problem}
+                                                compact
+                                                className="prose prose-sm max-w-none text-sm text-red-800 dark:text-red-200"
+                                            />
                                         </div>
                                     ))}
                                 </div>

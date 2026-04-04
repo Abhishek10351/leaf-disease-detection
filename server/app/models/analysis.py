@@ -15,20 +15,20 @@ class ImageUploadResponse(BaseModel):
 class ImageAnalysisRequest(BaseModel):
     """Image analysis request"""
     image_id: str
-    language: Literal["en", "hi"] = "en"
+    language: Literal["en", "hi", "as", "brx"] = "en"
 
 
 class SymptomsAnalysisRequest(BaseModel):
     """Symptoms analysis request"""
     symptoms_description: str
     plant_type: Optional[str] = None
-    language: Literal["en", "hi"] = "en"
+    language: Literal["en", "hi", "as", "brx"] = "en"
 
 
 class PlantCareRequest(BaseModel):
     """Plant care request"""
     plant_type: str
-    language: Literal["en", "hi"] = "en"
+    language: Literal["en", "hi", "as", "brx"] = "en"
 
 
 # LLM Response Models
