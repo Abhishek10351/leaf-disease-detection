@@ -4,14 +4,53 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ImageAnalysis } from '@/components/analysis/image-analysis'
 import { AnalysisHistory } from '@/components/analysis/analysis-history'
-import { History, ArrowLeft } from 'lucide-react'
+import { History, ArrowLeft, LocateFixed } from 'lucide-react'
 
 type ResponseLanguage = 'en' | 'hi' | 'as' | 'brx'
+
+type AnalysisLocation = {
+  latitude: number
+  longitude: number
+}
 
 export default function AnalysisDashboard() {
   const [showHistory, setShowHistory] = useState(false)
   const [analysisCount, setAnalysisCount] = useState(0)
   const [responseLanguage, setResponseLanguage] = useState<ResponseLanguage>('en')
+  const [analysisLocation, setAnalysisLocation] = useState<AnalysisLocation | null>(null)
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [locationMessage, setLocationMessage] = useState<string>('')
+
+  const requestLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('error')
+      setLocationMessage('Geolocation is not supported in this browser.')
+      return
+    }
+
+    setLocationStatus('loading')
+    setLocationMessage('Getting your location...')
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = Number(position.coords.latitude.toFixed(4))
+        const longitude = Number(position.coords.longitude.toFixed(4))
+        setAnalysisLocation({ latitude, longitude })
+        setLocationStatus('ready')
+        setLocationMessage(`Using your location: ${latitude}, ${longitude}`)
+      },
+      (error) => {
+        setAnalysisLocation(null)
+        setLocationStatus('error')
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationMessage('Location permission denied. Analysis will use fallback weather context.')
+          return
+        }
+        setLocationMessage('Could not fetch location right now. Analysis will use fallback weather context.')
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
+    )
+  }
 
   const handleAnalysisComplete = () => {
     setAnalysisCount(prev => prev + 1)
@@ -69,6 +108,25 @@ export default function AnalysisDashboard() {
                   BRX
                 </Button>
               </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-fit"
+                  onClick={requestLocation}
+                  disabled={locationStatus === 'loading'}
+                >
+                  <LocateFixed className="size-4" />
+                  {locationStatus === 'loading' ? 'Fetching location...' : analysisLocation ? 'Refresh Location' : 'Use Current Location'}
+                </Button>
+                {(locationStatus !== 'idle' || locationMessage) && (
+                  <p className={`text-xs ${locationStatus === 'error' ? 'text-red-600' : 'text-muted-foreground'}`}>
+                    {locationMessage}
+                  </p>
+                )}
+              </div>
             </div>
           )}
           </div>
@@ -101,6 +159,7 @@ export default function AnalysisDashboard() {
           ) : (
             <ImageAnalysis
               responseLanguage={responseLanguage}
+              analysisLocation={analysisLocation}
               onAnalysisComplete={handleAnalysisComplete}
             />
           )}

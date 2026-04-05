@@ -46,18 +46,26 @@ export interface PlantCareResponse {
   detailed_guide: string;
 }
 
+export interface AnalysisLocation {
+  latitude: number;
+  longitude: number;
+}
+
 export interface ImageAnalysisRequest {
   image_id: string;
   language?: "en" | "hi" | "as" | "brx";
+  location?: AnalysisLocation;
 }
 
 export interface SymptomsAnalysisRequest {
   symptoms_description: string;
   plant_type?: string;
+  location?: AnalysisLocation;
 }
 
 export interface PlantCareRequest {
   plant_type: string;
+  location?: AnalysisLocation;
 }
 
 export interface UploadedImage {
