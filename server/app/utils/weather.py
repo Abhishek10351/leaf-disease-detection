@@ -120,12 +120,35 @@ def _fetch_forecast(latitude: float, longitude: float) -> dict[str, Any]:
     }
 
 
-def _build_weather_summary() -> LocationClimateContext:
-    latitude = ASSAM_FALLBACK_LOCATION["latitude"]
-    longitude = ASSAM_FALLBACK_LOCATION["longitude"]
-    location_name = ASSAM_FALLBACK_LOCATION["name"]
-    region = ASSAM_FALLBACK_LOCATION["region"]
-    country = ASSAM_FALLBACK_LOCATION["country"]
+def _resolve_location(
+    latitude: Optional[float],
+    longitude: Optional[float],
+) -> tuple[float, float, str, str, str]:
+    if latitude is None or longitude is None:
+        return (
+            ASSAM_FALLBACK_LOCATION["latitude"],
+            ASSAM_FALLBACK_LOCATION["longitude"],
+            ASSAM_FALLBACK_LOCATION["name"],
+            ASSAM_FALLBACK_LOCATION["region"],
+            ASSAM_FALLBACK_LOCATION["country"],
+        )
+
+    lat = _safe_float(latitude, ASSAM_FALLBACK_LOCATION["latitude"])
+    lon = _safe_float(longitude, ASSAM_FALLBACK_LOCATION["longitude"])
+    return (
+        lat,
+        lon,
+        f"Coordinates {lat:.4f}, {lon:.4f}",
+        "",
+        "",
+    )
+
+
+def _build_weather_summary(
+    latitude: Optional[float] = None,
+    longitude: Optional[float] = None,
+) -> LocationClimateContext:
+    latitude, longitude, location_name, region, country = _resolve_location(latitude, longitude)
     forecast_data = _fetch_forecast(latitude, longitude)
 
     humidity_values = _to_float_list(forecast_data.get("relative_humidity_2m"))
@@ -175,9 +198,26 @@ def _build_weather_summary() -> LocationClimateContext:
 
 
 def build_location_weather_context() -> Optional[LocationClimateContext]:
-    """Fetch weather and coarse location context for the default Assam location."""
+    """Fetch weather and coarse location context, preferring provided coordinates."""
     try:
         return _build_weather_summary()
     except Exception as exc:
         logger.warning("Failed to resolve weather context: %s", exc)
+        return None
+
+
+def build_location_weather_context_for_coordinates(
+    latitude: Optional[float],
+    longitude: Optional[float],
+) -> Optional[LocationClimateContext]:
+    """Fetch weather context for request coordinates with Assam fallback on failure."""
+    try:
+        return _build_weather_summary(latitude=latitude, longitude=longitude)
+    except Exception as exc:
+        logger.warning("Failed to resolve weather context for coordinates (%s, %s): %s", latitude, longitude, exc)
+
+    try:
+        return _build_weather_summary()
+    except Exception as fallback_exc:
+        logger.warning("Fallback weather context failed: %s", fallback_exc)
         return None

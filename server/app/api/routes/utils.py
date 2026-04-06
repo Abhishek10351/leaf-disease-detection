@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Request, Response, Query
 import time
 import uuid
 from datetime import datetime, timezone
 
-from app.utils.weather import build_location_weather_context
+from app.utils.weather import (
+    build_location_weather_context,
+    build_location_weather_context_for_coordinates,
+)
 
 router = APIRouter(tags=["utils"])
 
@@ -26,9 +29,16 @@ async def ping(req: Request):
 
 
 @router.get("/weather/forecast-test")
-async def weather_forecast_test():
-    """Return the default Assam weather snapshot without invoking the LLM."""
-    context = build_location_weather_context()
+async def weather_forecast_test(
+    latitude: float | None = Query(default=None, ge=-90, le=90),
+    longitude: float | None = Query(default=None, ge=-180, le=180),
+):
+    """Return a weather snapshot for provided coordinates (or fallback when missing)."""
+    context = (
+        build_location_weather_context_for_coordinates(latitude, longitude)
+        if latitude is not None and longitude is not None
+        else build_location_weather_context()
+    )
     if context is None:
         return {
             "status": "unhealthy",

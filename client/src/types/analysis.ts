@@ -49,6 +49,11 @@ export interface PlantCareResponse {
 export interface AnalysisLocation {
   latitude: number;
   longitude: number;
+  label?: string;
+  region?: string;
+  country?: string;
+  accuracyMeters?: number;
+  capturedAt?: string;
 }
 
 export interface ImageAnalysisRequest {

@@ -79,7 +79,12 @@ export function ImageAnalysis({
       const analysisResponse = await AnalysisService.analyzeImage({
         image_id: uploadedImage.image_id,
         language: responseLanguage,
-        location: analysisLocation ?? undefined,
+        location: analysisLocation
+          ? {
+              latitude: analysisLocation.latitude,
+              longitude: analysisLocation.longitude,
+            }
+          : undefined,
       })
       setAnalysisStatus('Preparing diagnosis...')
       await new Promise(resolve => setTimeout(resolve, 180))
@@ -167,6 +172,9 @@ export function ImageAnalysis({
       ? 'Analyze Now'
       : 'Upload and Continue'
 
+  const locationLabel = analysisLocation?.label ??
+    (analysisLocation ? `${analysisLocation.latitude}, ${analysisLocation.longitude}` : null)
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Upload Section */}
@@ -184,6 +192,13 @@ export function ImageAnalysis({
         <CardContent className="space-y-4 sm:space-y-6">
           {!uploadedImage ? (
             <div className="space-y-4 sm:space-y-5">
+              {locationLabel && (
+                <div className="rounded-lg border border-emerald-200/80 bg-emerald-50/60 px-3 py-2 text-xs text-emerald-900">
+                  <p className="font-medium">Location detected</p>
+                  <p>{locationLabel}</p>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <p className="text-sm font-medium text-foreground">Try default samples</p>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -245,6 +260,13 @@ export function ImageAnalysis({
             </div>
           ) : (
             <div className="space-y-4 sm:space-y-5">
+              {locationLabel && (
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+                  <p className="font-medium text-slate-900">Analyzing for location</p>
+                  <p>{locationLabel}</p>
+                </div>
+              )}
+
               <div className="flex flex-col gap-3 p-3 sm:p-4 bg-emerald-50/50 rounded-xl border border-emerald-100 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 min-w-0">
                   <CheckCircle className="size-4 text-green-600" />

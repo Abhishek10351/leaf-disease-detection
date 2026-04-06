@@ -12,10 +12,17 @@ class ImageUploadResponse(BaseModel):
     uploaded_at: datetime = Field(default_factory=datetime.now)
 
 
+class RequestLocation(BaseModel):
+    """Optional location coordinates for climate-aware analysis."""
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+
+
 class ImageAnalysisRequest(BaseModel):
     """Image analysis request"""
     image_id: str
     language: Literal["en", "hi", "as", "brx"] = "en"
+    location: Optional[RequestLocation] = None
 
 
 class SymptomsAnalysisRequest(BaseModel):
@@ -23,12 +30,14 @@ class SymptomsAnalysisRequest(BaseModel):
     symptoms_description: str
     plant_type: Optional[str] = None
     language: Literal["en", "hi", "as", "brx"] = "en"
+    location: Optional[RequestLocation] = None
 
 
 class PlantCareRequest(BaseModel):
     """Plant care request"""
     plant_type: str
     language: Literal["en", "hi", "as", "brx"] = "en"
+    location: Optional[RequestLocation] = None
 
 
 # LLM Response Models

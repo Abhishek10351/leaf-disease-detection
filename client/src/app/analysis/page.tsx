@@ -5,12 +5,47 @@ import { Button } from '@/components/ui/button'
 import { ImageAnalysis } from '@/components/analysis/image-analysis'
 import { AnalysisHistory } from '@/components/analysis/analysis-history'
 import { History, ArrowLeft, LocateFixed } from 'lucide-react'
+import { AnalysisLocation } from '@/types/analysis'
 
 type ResponseLanguage = 'en' | 'hi' | 'as' | 'brx'
 
-type AnalysisLocation = {
-  latitude: number
-  longitude: number
+const formatLocationLabel = (location: AnalysisLocation): string => {
+  if (location.label) return location.label
+  return `${location.latitude}, ${location.longitude}`
+}
+
+const reverseGeocode = async (latitude: number, longitude: number): Promise<Partial<AnalysisLocation>> => {
+  const endpoint = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=10&addressdetails=1`
+  const response = await fetch(endpoint, {
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error('Reverse geocoding failed')
+  }
+
+  const data = await response.json()
+  const address = data?.address ?? {}
+
+  const locality =
+    address.city ||
+    address.town ||
+    address.village ||
+    address.municipality ||
+    address.county ||
+    'Current area'
+
+  const region = address.state || address.region || address.state_district || ''
+  const country = address.country || ''
+  const label = [locality, region, country].filter(Boolean).join(', ')
+
+  return {
+    label,
+    region,
+    country,
+  }
 }
 
 export default function AnalysisDashboard() {
@@ -32,12 +67,31 @@ export default function AnalysisDashboard() {
     setLocationMessage('Getting your location...')
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const latitude = Number(position.coords.latitude.toFixed(4))
         const longitude = Number(position.coords.longitude.toFixed(4))
-        setAnalysisLocation({ latitude, longitude })
-        setLocationStatus('ready')
-        setLocationMessage(`Using your location: ${latitude}, ${longitude}`)
+
+        const baseLocation: AnalysisLocation = {
+          latitude,
+          longitude,
+          accuracyMeters: Number(position.coords.accuracy.toFixed(0)),
+          capturedAt: new Date().toISOString(),
+        }
+
+        try {
+          const place = await reverseGeocode(latitude, longitude)
+          const enrichedLocation: AnalysisLocation = {
+            ...baseLocation,
+            ...place,
+          }
+          setAnalysisLocation(enrichedLocation)
+          setLocationStatus('ready')
+          setLocationMessage(`Using location: ${formatLocationLabel(enrichedLocation)}`)
+        } catch {
+          setAnalysisLocation(baseLocation)
+          setLocationStatus('ready')
+          setLocationMessage(`Using coordinates: ${latitude}, ${longitude}`)
+        }
       },
       (error) => {
         setAnalysisLocation(null)
@@ -127,6 +181,17 @@ export default function AnalysisDashboard() {
                   </p>
                 )}
               </div>
+
+              {analysisLocation && (
+                <div className="rounded-md border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                  <p className="font-medium text-foreground">Analysis location</p>
+                  <p>{formatLocationLabel(analysisLocation)}</p>
+                  <p>
+                    Lat {analysisLocation.latitude}, Lon {analysisLocation.longitude}
+                    {analysisLocation.accuracyMeters ? `, ±${analysisLocation.accuracyMeters}m` : ''}
+                  </p>
+                </div>
+              )}
             </div>
           )}
           </div>

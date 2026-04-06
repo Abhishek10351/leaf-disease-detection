@@ -21,7 +21,7 @@ from app.models.analysis import (
     PlantCareLLMResponse,
 )
 from app.llm_core import get_leaf_analysis
-from app.utils.weather import build_location_weather_context
+from app.utils.weather import build_location_weather_context_for_coordinates
 
 
 def _get_leaf_analysis():
@@ -47,6 +47,13 @@ router = APIRouter(prefix="/analysis", tags=["leaf-analysis"])
 # Create uploads directory if it doesn't exist
 UPLOAD_DIR = Path("uploads/images")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _extract_coordinates(request_with_location) -> tuple[Optional[float], Optional[float]]:
+    location = getattr(request_with_location, "location", None)
+    if not location:
+        return None, None
+    return location.latitude, location.longitude
 
 @router.post("/upload", response_model=ImageUploadResponse, status_code=201)
 async def upload_image(
@@ -123,7 +130,12 @@ async def analyze_uploaded_image(
     if not image_doc:
         raise HTTPException(status_code=404, detail="Image not found")
 
-    weather_context = await asyncio.to_thread(build_location_weather_context)
+    latitude, longitude = _extract_coordinates(request)
+    weather_context = await asyncio.to_thread(
+        build_location_weather_context_for_coordinates,
+        latitude,
+        longitude,
+    )
 
     # Read image file from disk
     file_path = Path(image_doc["file_path"])
@@ -168,6 +180,7 @@ async def analyze_uploaded_image(
                 "image_id": request.image_id,
                 "filename": image_doc["filename"],
                 "language": request.language,
+                "location": request.location.model_dump() if request.location else None,
                 "weather_context": weather_context.weather_summary if weather_context else None,
             },
             "response_data": result.model_dump(),
@@ -187,7 +200,12 @@ async def analyze_symptoms(
     request: SymptomsAnalysisRequest
 ):
     """Analyze plant symptoms based on description"""
-    weather_context = await asyncio.to_thread(build_location_weather_context)
+    latitude, longitude = _extract_coordinates(request)
+    weather_context = await asyncio.to_thread(
+        build_location_weather_context_for_coordinates,
+        latitude,
+        longitude,
+    )
 
     # Perform symptoms analysis
     try:
@@ -215,6 +233,7 @@ async def analyze_symptoms(
                 "symptoms_description": request.symptoms_description,
                 "plant_type": request.plant_type,
                 "language": request.language,
+                "location": request.location.model_dump() if request.location else None,
                 "weather_context": weather_context.weather_summary if weather_context else None,
             },
             "response_data": result.model_dump(),
@@ -234,7 +253,12 @@ async def get_care_tips(
     request: PlantCareRequest
 ):
     """Get care tips for a specific plant type"""
-    weather_context = await asyncio.to_thread(build_location_weather_context)
+    latitude, longitude = _extract_coordinates(request)
+    weather_context = await asyncio.to_thread(
+        build_location_weather_context_for_coordinates,
+        latitude,
+        longitude,
+    )
 
     # Get care tips
     try:
@@ -260,6 +284,7 @@ async def get_care_tips(
             "request_data": {
                 "plant_type": request.plant_type,
                 "language": request.language,
+                "location": request.location.model_dump() if request.location else None,
                 "weather_context": weather_context.weather_summary if weather_context else None,
             },
             "response_data": result.model_dump(),
