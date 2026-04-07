@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import {
     Card,
@@ -17,8 +17,8 @@ import {
     CheckCircle,
     AlertTriangle,
     XCircle,
-    ArrowDown,
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ImageAnalysisResponse, SymptomsAnalysisResponse, PlantCareResponse } from "@/types/analysis";
 
 type AnalysisResult = ImageAnalysisResponse | SymptomsAnalysisResponse | PlantCareResponse;
@@ -89,7 +89,7 @@ export function AnalysisResultViewer({
     title,
     showMetadata = true,
 }: AnalysisResultViewerProps) {
-    const detailedSectionRef = useRef<HTMLDivElement>(null);
+    const [activeTab, setActiveTab] = useState("basic");
 
     const summaryText =
         isImageAnalysis(result) || isSymptomsAnalysis(result)
@@ -102,13 +102,6 @@ export function AnalysisResultViewer({
     const detailedContent = isImageAnalysis(result) || isSymptomsAnalysis(result) 
         ? result.detailed_analysis 
         : result.detailed_guide;
-
-    const scrollToDetailedReport = () => {
-        detailedSectionRef.current?.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-        });
-    };
 
     return (
         <Card className="w-full">
@@ -129,16 +122,6 @@ export function AnalysisResultViewer({
                         <CardDescription className="text-base">
                             {summaryText}
                         </CardDescription>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="w-fit text-xs"
-                            onClick={scrollToDetailedReport}
-                        >
-                            <ArrowDown className="h-3.5 w-3.5 mr-1" />
-                            Jump to detailed analysis
-                        </Button>
                     </div>
                 )}
                 {isPlantCare(result) && (
@@ -201,207 +184,217 @@ export function AnalysisResultViewer({
             </CardHeader>
 
             <CardContent className="space-y-6">
-                {/* Image Analysis Sections */}
-                {isImageAnalysis(result) && (
-                    <div className="space-y-4">
-                        <div className="grid gap-3">
-                            <div className="p-3 bg-muted/50 rounded-lg">
-                                <div className="text-xs font-medium text-muted-foreground mb-1">
-                                    Plant
-                                </div>
-                                <div className="text-sm leading-relaxed">
-                                    {result.plant_identification}
-                                </div>
-                            </div>
-                            <div className="p-3 bg-muted/50 rounded-lg">
-                                <div className="text-xs font-medium text-muted-foreground mb-1">
-                                    Issue
-                                </div>
-                                <div className="text-sm leading-relaxed">
-                                    {result.primary_issue}
-                                </div>
-                            </div>
-                        </div>
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="w-full justify-start overflow-x-auto">
+                        <TabsTrigger value="basic">Basic</TabsTrigger>
+                        <TabsTrigger value="actions">Actions</TabsTrigger>
+                        <TabsTrigger value="detailed">Detailed</TabsTrigger>
+                    </TabsList>
 
-                        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                            <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-3">
-                                🚨 Immediate Action Required
-                            </h4>
-                            <MarkdownViewer
-                                content={result.immediate_action}
-                                compact
-                                className="prose prose-sm max-w-none text-sm"
-                            />
-                        </div>
-
-                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                            <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-3">
-                                💊 Treatment Plan
-                            </h4>
-                            <MarkdownViewer
-                                content={result.treatment}
-                                compact
-                                className="prose prose-sm max-w-none text-sm"
-                            />
-                        </div>
-
-                        <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                            <h4 className="text-sm font-semibold text-green-800 dark:text-green-200 mb-3">
-                                🛡️ Prevention Strategies
-                            </h4>
-                            <MarkdownViewer
-                                content={result.prevention}
-                                compact
-                                className="prose prose-sm max-w-none text-sm"
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {/* Symptoms Analysis Sections */}
-                {isSymptomsAnalysis(result) && (
-                    <div className="space-y-4">
-                        <div className="p-3 bg-muted/50 rounded-lg">
-                            <div className="text-xs font-medium text-muted-foreground mb-1">
-                                Likely Condition
-                            </div>
-                            <div className="text-sm leading-relaxed">
-                                {result.likely_condition}
-                            </div>
-                        </div>
-
-                        <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                            <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-3">
-                                🚨 Immediate Action Required
-                            </h4>
-                            <MarkdownViewer
-                                content={result.immediate_action}
-                                compact
-                                className="prose prose-sm max-w-none text-sm"
-                            />
-                        </div>
-
-                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                            <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-3">
-                                💊 Treatment Steps
-                            </h4>
-                            <MarkdownViewer
-                                content={result.treatment_steps}
-                                compact
-                                className="prose prose-sm max-w-none text-sm"
-                            />
-                        </div>
-
-                        <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-                            <h4 className="text-sm font-semibold text-purple-800 dark:text-purple-200 mb-3">
-                                👀 What to Monitor
-                            </h4>
-                            <MarkdownViewer
-                                content={result.what_to_watch}
-                                compact
-                                className="prose prose-sm max-w-none text-sm"
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {/* Plant Care Sections */}
-                {isPlantCare(result) && (
-                    <div className="space-y-4">
-                        <div className="space-y-4">
-                            <h4 className="text-sm font-semibold">
-                                🌱 Essential Care Requirements
-                            </h4>
-                            <div className="grid gap-4">
-                                <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-                                    <div className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">
-                                        ☀️ Light Requirements
+                    <TabsContent value="basic" className="mt-4 space-y-4">
+                        {isImageAnalysis(result) && (
+                            <div className="grid gap-3">
+                                <div className="p-3 bg-muted/50 rounded-lg">
+                                    <div className="text-xs font-medium text-muted-foreground mb-1">
+                                        Plant
                                     </div>
+                                    <div className="text-sm leading-relaxed">
+                                        {result.plant_identification}
+                                    </div>
+                                </div>
+                                <div className="p-3 bg-muted/50 rounded-lg">
+                                    <div className="text-xs font-medium text-muted-foreground mb-1">
+                                        Main Issue
+                                    </div>
+                                    <div className="text-sm leading-relaxed">
+                                        {result.primary_issue}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {isSymptomsAnalysis(result) && (
+                            <div className="p-3 bg-muted/50 rounded-lg">
+                                <div className="text-xs font-medium text-muted-foreground mb-1">
+                                    Likely Condition
+                                </div>
+                                <div className="text-sm leading-relaxed">
+                                    {result.likely_condition}
+                                </div>
+                            </div>
+                        )}
+
+                        {isPlantCare(result) && (
+                            <div className="p-3 rounded-lg border bg-muted/40 text-sm text-muted-foreground">
+                                Quick overview shown above. Use the Actions and Detailed tabs for full care guidance.
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    <TabsContent value="actions" className="mt-4 space-y-4">
+                        {isImageAnalysis(result) && (
+                            <>
+                                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                                    <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-3">
+                                        🚨 Immediate Action Required
+                                    </h4>
                                     <MarkdownViewer
-                                        content={result.essential_care.light}
+                                        content={result.immediate_action}
                                         compact
-                                        className="prose prose-sm max-w-none text-sm text-amber-700 dark:text-amber-300"
+                                        className="prose prose-sm max-w-none text-sm"
                                     />
                                 </div>
                                 <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                    <div className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                                        💧 Watering Guidelines
-                                    </div>
+                                    <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-3">
+                                        💊 Treatment Plan
+                                    </h4>
                                     <MarkdownViewer
-                                        content={result.essential_care.water}
+                                        content={result.treatment}
                                         compact
-                                        className="prose prose-sm max-w-none text-sm text-blue-700 dark:text-blue-300"
+                                        className="prose prose-sm max-w-none text-sm"
                                     />
                                 </div>
                                 <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                                    <div className="text-sm font-semibold text-green-800 dark:text-green-200 mb-2">
-                                        🌿 Soil Requirements
-                                    </div>
+                                    <h4 className="text-sm font-semibold text-green-800 dark:text-green-200 mb-3">
+                                        🛡️ Prevention Strategies
+                                    </h4>
                                     <MarkdownViewer
-                                        content={result.essential_care.soil}
+                                        content={result.prevention}
                                         compact
-                                        className="prose prose-sm max-w-none text-sm text-green-700 dark:text-green-300"
+                                        className="prose prose-sm max-w-none text-sm"
                                     />
                                 </div>
-                            </div>
-                        </div>
-
-                        {result.key_tips && result.key_tips.length > 0 && (
-                            <div className="space-y-3">
-                                <h4 className="text-sm font-semibold">
-                                    💡 Expert Tips
-                                </h4>
-                                <div className="space-y-3">
-                                    {result.key_tips.map((tip, index) => (
-                                        <div
-                                            key={index}
-                                            className="p-3 bg-muted/30 rounded-lg border-l-4 border-primary"
-                                        >
-                                            <MarkdownViewer
-                                                content={tip}
-                                                compact
-                                                className="prose prose-sm max-w-none text-sm"
-                                            />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
+                            </>
                         )}
 
-                        {result.common_problems && result.common_problems.length > 0 && (
-                            <div className="space-y-3">
-                                <h4 className="text-sm font-semibold">
-                                    ⚠️ Common Problems & Solutions
-                                </h4>
-                                <div className="space-y-3">
-                                    {result.common_problems.map((problem, index) => (
-                                        <div
-                                            key={index}
-                                            className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
-                                        >
+                        {isSymptomsAnalysis(result) && (
+                            <>
+                                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                                    <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-200 mb-3">
+                                        🚨 Immediate Action Required
+                                    </h4>
+                                    <MarkdownViewer
+                                        content={result.immediate_action}
+                                        compact
+                                        className="prose prose-sm max-w-none text-sm"
+                                    />
+                                </div>
+                                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                    <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-3">
+                                        💊 Treatment Steps
+                                    </h4>
+                                    <MarkdownViewer
+                                        content={result.treatment_steps}
+                                        compact
+                                        className="prose prose-sm max-w-none text-sm"
+                                    />
+                                </div>
+                                <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                                    <h4 className="text-sm font-semibold text-purple-800 dark:text-purple-200 mb-3">
+                                        👀 What to Monitor
+                                    </h4>
+                                    <MarkdownViewer
+                                        content={result.what_to_watch}
+                                        compact
+                                        className="prose prose-sm max-w-none text-sm"
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        {isPlantCare(result) && (
+                            <>
+                                <div className="space-y-4">
+                                    <h4 className="text-sm font-semibold">
+                                        🌱 Essential Care Requirements
+                                    </h4>
+                                    <div className="grid gap-4">
+                                        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                                            <div className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">
+                                                ☀️ Light Requirements
+                                            </div>
                                             <MarkdownViewer
-                                                content={problem}
+                                                content={result.essential_care.light}
                                                 compact
-                                                className="prose prose-sm max-w-none text-sm text-red-800 dark:text-red-200"
+                                                className="prose prose-sm max-w-none text-sm text-amber-700 dark:text-amber-300"
                                             />
                                         </div>
-                                    ))}
+                                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                            <div className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                                                💧 Watering Guidelines
+                                            </div>
+                                            <MarkdownViewer
+                                                content={result.essential_care.water}
+                                                compact
+                                                className="prose prose-sm max-w-none text-sm text-blue-700 dark:text-blue-300"
+                                            />
+                                        </div>
+                                        <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                                            <div className="text-sm font-semibold text-green-800 dark:text-green-200 mb-2">
+                                                🌿 Soil Requirements
+                                            </div>
+                                            <MarkdownViewer
+                                                content={result.essential_care.soil}
+                                                compact
+                                                className="prose prose-sm max-w-none text-sm text-green-700 dark:text-green-300"
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                                {result.key_tips && result.key_tips.length > 0 && (
+                                    <div className="space-y-3">
+                                        <h4 className="text-sm font-semibold">
+                                            💡 Expert Tips
+                                        </h4>
+                                        <div className="space-y-3">
+                                            {result.key_tips.map((tip, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="p-3 bg-muted/30 rounded-lg border-l-4 border-primary"
+                                                >
+                                                    <MarkdownViewer
+                                                        content={tip}
+                                                        compact
+                                                        className="prose prose-sm max-w-none text-sm"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                {result.common_problems && result.common_problems.length > 0 && (
+                                    <div className="space-y-3">
+                                        <h4 className="text-sm font-semibold">
+                                            ⚠️ Common Problems & Solutions
+                                        </h4>
+                                        <div className="space-y-3">
+                                            {result.common_problems.map((problem, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                                                >
+                                                    <MarkdownViewer
+                                                        content={problem}
+                                                        compact
+                                                        className="prose prose-sm max-w-none text-sm text-red-800 dark:text-red-200"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
                         )}
-                    </div>
-                )}
+                    </TabsContent>
 
-                {/* Detailed Analysis */}
-                <div ref={detailedSectionRef} className="pt-4 border-t">
-                    <h4 className="text-sm font-semibold mb-3">
-                        Detailed Analysis
-                    </h4>
-                    <MarkdownViewer
-                        content={detailedContent}
-                        className="prose prose-sm max-w-none"
-                    />
-                </div>
+                    <TabsContent value="detailed" className="mt-4 pt-1">
+                        <h4 className="text-sm font-semibold mb-3">Detailed Analysis</h4>
+                        <MarkdownViewer
+                            content={detailedContent}
+                            className="prose prose-sm max-w-none"
+                        />
+                    </TabsContent>
+                </Tabs>
             </CardContent>
         </Card>
     );

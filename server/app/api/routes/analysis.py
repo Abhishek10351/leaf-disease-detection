@@ -1,13 +1,14 @@
 import asyncio
-import logging
-from fastapi import APIRouter, HTTPException, Request, File, UploadFile
-from fastapi.responses import FileResponse
-from typing import Optional
-from datetime import datetime
-from bson import ObjectId
 import base64
+import logging
+from datetime import datetime
 from pathlib import Path
+from typing import Any, Optional
+
 import aiofiles
+from bson import ObjectId
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,9 @@ from app.models.analysis import (
     SymptomsAnalysisLLMResponse,
     PlantCareLLMResponse,
 )
+from app.core.config import settings
 from app.llm_core import get_leaf_analysis
+from app.utils.image_hashing import compute_phash_hex, phash_hamming_distance
 from app.utils.weather import build_location_weather_context_for_coordinates
 
 
@@ -40,8 +43,13 @@ def _contains_weather_reference(text: Optional[str]) -> bool:
 def _build_weather_note(weather_context: str) -> str:
     first_sentence = weather_context.split(".")[0].strip()
     if not first_sentence:
-        return "Weather note: Local weather conditions should guide spray timing and disease-risk prioritization."
+        return (
+            "Weather note: Local weather conditions should guide spray timing "
+            "and disease-risk prioritization."
+        )
     return f"Weather note: {first_sentence}."
+
+
 router = APIRouter(prefix="/analysis", tags=["leaf-analysis"])
 
 # Create uploads directory if it doesn't exist
@@ -55,37 +63,95 @@ def _extract_coordinates(request_with_location) -> tuple[Optional[float], Option
         return None, None
     return location.latitude, location.longitude
 
+
+
+def _location_scope_from_coordinates(latitude: Optional[float], longitude: Optional[float]) -> str:
+    """Create coarse location scope so pHash cache reuse remains region-aware."""
+    if latitude is None or longitude is None:
+        return "fallback"
+    return f"{round(latitude, 1)}:{round(longitude, 1)}"
+
+
+async def _find_cached_image_analysis(
+    req: Request,
+    image_phash: str,
+    language: str,
+    location_scope: str,
+) -> tuple[Optional[dict[str, Any]], Optional[int]]:
+    """Find nearest cached image analysis using pHash Hamming distance."""
+    cache_query = {
+        "analysis_type": "image",
+        "request_data.language": language,
+        "request_data.location_scope": location_scope,
+        "request_data.image_phash": {"$exists": True},
+        "response_data": {"$exists": True},
+    }
+    projection = {
+        "request_data.image_phash": 1,
+        "response_data": 1,
+    }
+    cursor = (
+        req.app.mongodb["analysis_history"]
+        .find(cache_query, projection)
+        .sort("timestamp", -1)
+        .limit(settings.PHASH_CACHE_MAX_CANDIDATES)
+    )
+    docs = await cursor.to_list(length=settings.PHASH_CACHE_MAX_CANDIDATES)
+
+    best_doc: Optional[dict[str, Any]] = None
+    best_distance: Optional[int] = None
+    for doc in docs:
+        candidate_hash = doc.get("request_data", {}).get("image_phash")
+        distance = phash_hamming_distance(image_phash, candidate_hash)
+        if distance is None:
+            continue
+        if best_distance is None or distance < best_distance:
+            best_doc = doc
+            best_distance = distance
+
+    if best_doc is None or best_distance is None:
+        return None, None
+    if best_distance > settings.PHASH_HAMMING_DISTANCE_THRESHOLD:
+        return None, None
+
+    return best_doc, best_distance
+
 @router.post("/upload", response_model=ImageUploadResponse, status_code=201)
 async def upload_image(
     req: Request,
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
 ):
     """Upload an image and get an ID for later analysis"""
     # Validate file type
-    if not file.content_type or not file.content_type.startswith('image/'):
+    if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
-    
+
     # Validate file size (max 10MB)
     max_size = 10 * 1024 * 1024  # 10MB
     file_content = await file.read()
     if len(file_content) > max_size:
         raise HTTPException(status_code=400, detail="File size too large (max 10MB)")
+
+    try:
+        image_phash = compute_phash_hex(file_content)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Unsupported image payload: {str(e)}")
     
     # Generate unique image ID and file path
     image_id = str(ObjectId())
-    file_extension = Path(file.filename).suffix.lower() if file.filename else '.jpg'
+    file_extension = Path(file.filename).suffix.lower() if file.filename else ".jpg"
     file_path = UPLOAD_DIR / f"{image_id}{file_extension}"
-    
+
     # Get user_id if logged in
     user_id = None
-    if hasattr(req.state, 'user') and req.state.user:
+    if hasattr(req.state, "user") and req.state.user:
         user_id = req.state.user.email
-    
+
     try:
         # Save file to disk
-        async with aiofiles.open(file_path, 'wb') as f:
+        async with aiofiles.open(file_path, "wb") as f:
             await f.write(file_content)
-        
+
         # Store metadata in database
         image_metadata = {
             "_id": image_id,
@@ -93,18 +159,19 @@ async def upload_image(
             "file_size": len(file_content),
             "content_type": file.content_type,
             "file_path": str(file_path),
+            "phash": image_phash,
             "user_id": user_id,
             "uploaded_at": datetime.now()
         }
-        
+
         await req.app.mongodb["uploaded_images"].insert_one(image_metadata)
-        
+
     except Exception as e:
         # Clean up file if database save fails
         if file_path.exists():
             file_path.unlink()
         raise HTTPException(status_code=500, detail=f"Failed to save image: {str(e)}")
-    
+
     return ImageUploadResponse(
         image_id=image_id,
         filename=file.filename,
@@ -116,7 +183,7 @@ async def upload_image(
 @router.post("/analyze", response_model=ImageAnalysisLLMResponse)
 async def analyze_uploaded_image(
     req: Request,
-    request: ImageAnalysisRequest
+    request: ImageAnalysisRequest,
 ):
     """Analyze a previously uploaded image using its ID"""
     # Get uploaded image metadata from database
@@ -131,6 +198,7 @@ async def analyze_uploaded_image(
         raise HTTPException(status_code=404, detail="Image not found")
 
     latitude, longitude = _extract_coordinates(request)
+    location_scope = _location_scope_from_coordinates(latitude, longitude)
     weather_context = await asyncio.to_thread(
         build_location_weather_context_for_coordinates,
         latitude,
@@ -142,11 +210,70 @@ async def analyze_uploaded_image(
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Image file not found on disk")
 
+    image_phash = image_doc.get("phash")
+
     try:
         # Read and encode image to base64
-        async with aiofiles.open(file_path, 'rb') as f:
+        async with aiofiles.open(file_path, "rb") as f:
             file_content = await f.read()
-        image_base64 = base64.b64encode(file_content).decode('utf-8')
+
+        if not image_phash:
+            image_phash = compute_phash_hex(file_content)
+            await req.app.mongodb["uploaded_images"].update_one(
+                {"_id": request.image_id},
+                {"$set": {"phash": image_phash}},
+            )
+
+        if image_phash:
+            cached_doc, cache_distance = await _find_cached_image_analysis(
+                req=req,
+                image_phash=image_phash,
+                language=request.language,
+                location_scope=location_scope,
+            )
+            if cached_doc:
+                cached_response = cached_doc.get("response_data") or {}
+                result = ImageAnalysisLLMResponse.model_validate(cached_response)
+
+                user_id = None
+                if hasattr(req.state, "user") and req.state.user:
+                    user_id = req.state.user.email
+
+                try:
+                    await req.app.mongodb["analysis_history"].insert_one(
+                        {
+                            "_id": str(ObjectId()),
+                            "analysis_type": "image",
+                            "image_id": request.image_id,
+                            "user_id": user_id,
+                            "request_data": {
+                                "image_id": request.image_id,
+                                "filename": image_doc["filename"],
+                                "language": request.language,
+                                "location": request.location.model_dump() if request.location else None,
+                                "location_scope": location_scope,
+                                "image_phash": image_phash,
+                                "cache_hit": True,
+                                "cache_distance": cache_distance,
+                            },
+                            "response_data": result.model_dump(),
+                            "cache_source_history_id": str(cached_doc.get("_id")),
+                            "timestamp": datetime.now(),
+                        }
+                    )
+                except Exception as history_error:
+                    logger.warning("Failed to save cache-hit history: %s", history_error)
+
+                logger.info(
+                    "pHash cache hit for image_id=%s distance=%s language=%s scope=%s",
+                    request.image_id,
+                    cache_distance,
+                    request.language,
+                    location_scope,
+                )
+                return result
+
+        image_base64 = base64.b64encode(file_content).decode("utf-8")
 
         # Perform analysis
         result = _get_leaf_analysis().analyze_leaf_image(
@@ -166,9 +293,9 @@ async def analyze_uploaded_image(
 
     # Get user_id if logged in
     user_id = None
-    if hasattr(req.state, 'user') and req.state.user:
+    if hasattr(req.state, "user") and req.state.user:
         user_id = req.state.user.email
-    
+
     # Save analysis to history
     try:
         history_data = {
@@ -181,10 +308,13 @@ async def analyze_uploaded_image(
                 "filename": image_doc["filename"],
                 "language": request.language,
                 "location": request.location.model_dump() if request.location else None,
+                "location_scope": location_scope,
+                "image_phash": image_phash,
+                "cache_hit": False,
                 "weather_context": weather_context.weather_summary if weather_context else None,
             },
             "response_data": result.model_dump(),
-            "timestamp": datetime.now()
+            "timestamp": datetime.now(),
         }
         await req.app.mongodb["analysis_history"].insert_one(history_data)
     except Exception as e:
@@ -197,7 +327,7 @@ async def analyze_uploaded_image(
 @router.post("/symptoms", response_model=SymptomsAnalysisLLMResponse)
 async def analyze_symptoms(
     req: Request,
-    request: SymptomsAnalysisRequest
+    request: SymptomsAnalysisRequest,
 ):
     """Analyze plant symptoms based on description"""
     latitude, longitude = _extract_coordinates(request)
@@ -220,9 +350,9 @@ async def analyze_symptoms(
 
     # Get user_id if logged in
     user_id = None
-    if hasattr(req.state, 'user') and req.state.user:
+    if hasattr(req.state, "user") and req.state.user:
         user_id = req.state.user.email
-    
+
     # Save to history
     try:
         history_data = {
@@ -237,7 +367,7 @@ async def analyze_symptoms(
                 "weather_context": weather_context.weather_summary if weather_context else None,
             },
             "response_data": result.model_dump(),
-            "timestamp": datetime.now()
+            "timestamp": datetime.now(),
         }
         await req.app.mongodb["analysis_history"].insert_one(history_data)
     except Exception as e:
@@ -250,7 +380,7 @@ async def analyze_symptoms(
 @router.post("/care-tips", response_model=PlantCareLLMResponse)
 async def get_care_tips(
     req: Request,
-    request: PlantCareRequest
+    request: PlantCareRequest,
 ):
     """Get care tips for a specific plant type"""
     latitude, longitude = _extract_coordinates(request)
@@ -272,9 +402,9 @@ async def get_care_tips(
 
     # Get user_id if logged in
     user_id = None
-    if hasattr(req.state, 'user') and req.state.user:
+    if hasattr(req.state, "user") and req.state.user:
         user_id = req.state.user.email
-    
+
     # Save to history
     try:
         history_data = {
@@ -288,7 +418,7 @@ async def get_care_tips(
                 "weather_context": weather_context.weather_summary if weather_context else None,
             },
             "response_data": result.model_dump(),
-            "timestamp": datetime.now()
+            "timestamp": datetime.now(),
         }
         await req.app.mongodb["analysis_history"].insert_one(history_data)
     except Exception as e:
@@ -302,14 +432,14 @@ async def get_care_tips(
 async def get_uploaded_images(
     req: Request,
     limit: int = 20,
-    skip: int = 0
+    skip: int = 0,
 ):
     """Get list of uploaded images"""
     # Get user_id if logged in
     user_id = None
-    if hasattr(req.state, 'user') and req.state.user:
+    if hasattr(req.state, "user") and req.state.user:
         user_id = req.state.user.email
-    
+
     try:
         # Build query filter - show only user's images if logged in, blank if not
         query_filter = {}
@@ -321,14 +451,14 @@ async def get_uploaded_images(
                 "images": [],
                 "total": 0,
                 "skip": skip,
-                "limit": limit
+                "limit": limit,
             }
-        
+
         # Get images metadata from database
         images_cursor = req.app.mongodb["uploaded_images"].find(
             query_filter
         ).sort("uploaded_at", -1).skip(skip).limit(limit)
-        
+
         images_list = await images_cursor.to_list(length=limit)
         
         # Format response
@@ -339,16 +469,16 @@ async def get_uploaded_images(
                 "filename": img["filename"],
                 "file_size": img["file_size"],
                 "content_type": img["content_type"],
-                "uploaded_at": img["uploaded_at"]
+                "uploaded_at": img["uploaded_at"],
             })
-        
+
         return {
             "images": formatted_images,
             "total": len(formatted_images),
             "skip": skip,
-            "limit": limit
+            "limit": limit,
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching images: {str(e)}")
 

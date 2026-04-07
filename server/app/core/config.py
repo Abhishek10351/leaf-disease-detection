@@ -28,8 +28,11 @@ class Settings(BaseSettings):
     MONGODB_URI: str = "mongodb://localhost:27017"
     MONGODB_DB_NAME: str = "test_db"
     OPENROUTER_API_KEY: str
-    OPENROUTER_TEXT_MAX_TOKENS: int = 4096
-    OPENROUTER_VISION_MAX_TOKENS: int = 4096
+    OPENROUTER_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    OPENROUTER_TEXT_MAX_TOKENS: int = 8000
+    OPENROUTER_VISION_MAX_TOKENS: int = 12000
+    PHASH_HAMMING_DISTANCE_THRESHOLD: int = 4
+    PHASH_CACHE_MAX_CANDIDATES: int = 300
     # 60 minutes * 24 hours * 20 days = 20  days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 20
     FRONTEND_HOST: str = "http://localhost:3000"

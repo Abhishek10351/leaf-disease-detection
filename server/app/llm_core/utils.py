@@ -136,6 +136,16 @@ class LeafAnalysisUtils:
         )
 
     @staticmethod
+    def _formatting_instruction() -> str:
+        """Keep outputs visually clean and easy to scan in the UI."""
+        return (
+            "Formatting requirement: Keep output clean and scannable. "
+            "Use short markdown bullet points with '-' for steps and actions. "
+            "Avoid repeating the same advice in different sections. "
+            "Do not add long introductions or unnecessary filler text."
+        )
+
+    @staticmethod
     def _location_instruction(location_context: Optional[str]) -> str:
         """Return location-aware agricultural guidance when climate data is available."""
         if not location_context:
@@ -161,19 +171,22 @@ class LeafAnalysisUtils:
         """Analyze leaf image directly with vision model."""
         language_instruction = self._language_instruction(language)
         simplicity_instruction = self._simplicity_instruction()
+        formatting_instruction = self._formatting_instruction()
         location_instruction = self._location_instruction(location_context)
         prompt_parts = [
             "You are an expert plant pathologist. Analyze this leaf image and provide a comprehensive diagnosis.",
             "Include: plant identification, severity, confidence, one primary issue, immediate actions, treatment plan, prevention strategy, and detailed markdown analysis with differential diagnosis.",
             language_instruction,
             simplicity_instruction,
+            formatting_instruction,
         ]
         fallback_parts = [
             "You are an expert plant pathologist. Analyze this leaf image and return a valid structured response.",
             "Keep each field complete but concise so the full response fits safely within output limits.",
-            "Word limits: quick_summary 60-90 words, immediate_action 90-140 words, treatment 120-180 words, prevention 80-130 words, detailed_analysis 220-320 words in markdown with headings: Likely Diagnosis, Why This Matches, Differential Diagnosis, Treatment Plan, Monitoring and Escalation.",
+            "Word limits: quick_summary 40-70 words, immediate_action 70-110 words, treatment 90-140 words, prevention 60-100 words, detailed_analysis 160-240 words in markdown with headings: Likely Diagnosis, Why This Matches, Differential Diagnosis, Treatment Plan, Monitoring and Escalation.",
             language_instruction,
             simplicity_instruction,
+            formatting_instruction,
         ]
         if location_instruction:
             prompt_parts.append(location_instruction)
@@ -200,6 +213,7 @@ class LeafAnalysisUtils:
         """Analyze leaf symptoms directly with qwen model."""
         language_instruction = self._language_instruction(language)
         simplicity_instruction = self._simplicity_instruction()
+        formatting_instruction = self._formatting_instruction()
         location_instruction = self._location_instruction(location_context)
         plant_context = f"Plant type: {plant_type}\n" if plant_type else ""
         prompt_parts = [
@@ -208,14 +222,16 @@ class LeafAnalysisUtils:
             "Provide: likely_condition, severity, confidence, quick_summary (2-3 sentences), immediate_action (3-4 steps), treatment_steps (4-6 steps with timing), what_to_watch (with time windows), and detailed_analysis (markdown with Likely Cause, Supporting Symptoms, Differential Diagnosis, Treatment Roadmap, Escalation Signs).",
             language_instruction,
             simplicity_instruction,
+            formatting_instruction,
         ]
         fallback_parts = [
             "You are an expert plant pathologist. Analyze these symptoms and return a valid structured response.",
             f"{plant_context}Symptoms: {symptoms_description}",
             "Keep outputs detailed but concise to avoid truncation.",
-            "Word limits: quick_summary 60-90 words, immediate_action 90-140 words, treatment_steps 120-180 words, what_to_watch 80-130 words, detailed_analysis 220-320 words in markdown with sections: Likely Cause, Supporting Symptoms, Differential Diagnosis, Treatment Roadmap, Escalation Signs.",
+            "Word limits: quick_summary 40-70 words, immediate_action 70-110 words, treatment_steps 90-140 words, what_to_watch 60-100 words, detailed_analysis 160-240 words in markdown with sections: Likely Cause, Supporting Symptoms, Differential Diagnosis, Treatment Roadmap, Escalation Signs.",
             language_instruction,
             simplicity_instruction,
+            formatting_instruction,
         ]
         if location_instruction:
             prompt_parts.append(location_instruction)
@@ -240,19 +256,22 @@ class LeafAnalysisUtils:
         """Get plant care tips directly with qwen model."""
         language_instruction = self._language_instruction(language)
         simplicity_instruction = self._simplicity_instruction()
+        formatting_instruction = self._formatting_instruction()
         location_instruction = self._location_instruction(location_context)
         prompt_parts = [
             f"Provide comprehensive care guidelines for {plant_type}.",
             "Include: care_difficulty (Easy/Moderate/Difficult), quick_overview (2-3 sentences), essential_care (light, water, soil), key_tips (exactly 5 bullets), common_problems (exactly 3 bullets), and detailed_guide (markdown with Environment Setup, Routine Care, Seasonal Adjustments, Troubleshooting).",
             language_instruction,
             simplicity_instruction,
+            formatting_instruction,
         ]
         fallback_parts = [
             f"Provide comprehensive care guidelines for {plant_type} and return a valid structured response.",
             "Keep content detailed but concise to avoid truncation.",
-            "Word limits: quick_overview 60-90 words; essential_care.light 60-90 words; essential_care.water 60-90 words; essential_care.soil 60-90 words; each key_tip 20-35 words; each common_problem 30-50 words; detailed_guide 220-320 words in markdown with Environment Setup, Routine Care, Seasonal Adjustments, Troubleshooting.",
+            "Word limits: quick_overview 40-70 words; essential_care.light 40-70 words; essential_care.water 40-70 words; essential_care.soil 40-70 words; each key_tip 12-24 words; each common_problem 18-36 words; detailed_guide 160-240 words in markdown with Environment Setup, Routine Care, Seasonal Adjustments, Troubleshooting.",
             language_instruction,
             simplicity_instruction,
+            formatting_instruction,
         ]
         if location_instruction:
             prompt_parts.append(location_instruction)

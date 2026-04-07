@@ -45,7 +45,7 @@ class ImageAnalysisLLMResponse(BaseModel):
     """Expert plant pathologist analysis of leaf images."""
     plant_identification: str = Field(
         ..., 
-        description="Plant species/family with key identifying features"
+        description="Plant name in simple words with 1 short identifying clue"
     )
     health_status: Literal["Healthy", "Mild", "Moderate", "Severe"] = Field(
         ..., 
@@ -57,27 +57,27 @@ class ImageAnalysisLLMResponse(BaseModel):
     )
     primary_issue: str = Field(
         ..., 
-        description="Main problem identified with brief description"
+        description="Main issue in simple words, one short line"
     )
     quick_summary: str = Field(
         ..., 
-        description="2-3 sentence summary explaining the condition and its impact"
+        description="Short 2-3 sentence summary in plain language for non-technical users"
     )
     immediate_action: str = Field(
         ..., 
-        description="What to do in the next 24-48 hours: 3-4 actionable steps with specific details like application rates and timing"
+        description="Immediate next steps for 24-48 hours as clean bullet points, easy to follow"
     )
     treatment: str = Field(
         ..., 
-        description="Comprehensive treatment plan with specific methods, timing, and application details (4-6 detailed points)"
+        description="Treatment plan as short actionable bullet points with simple timing guidance"
     )
     prevention: str = Field(
         ..., 
-        description="Prevention strategies including environmental controls, care practices, and monitoring tips (3-4 points)"
+        description="Simple prevention checklist in concise bullet points"
     )
     detailed_analysis: str = Field(
         ..., 
-        description="Complete technical analysis in markdown format with pathology details, symptom progression, differential diagnosis, and scientific reasoning. Well-organized with clear sections for home gardeners."
+        description="Structured markdown report with clear headings, but still readable by normal users"
     )
 
 
@@ -85,7 +85,7 @@ class SymptomsAnalysisLLMResponse(BaseModel):
     """Expert plant pathologist analysis based on symptom descriptions."""
     likely_condition: str = Field(
         ..., 
-        description="Most probable disease/issue with brief description"
+        description="Most likely condition in simple words"
     )
     severity: Literal["Healthy", "Mild", "Moderate", "Severe"] = Field(
         ..., 
@@ -97,23 +97,23 @@ class SymptomsAnalysisLLMResponse(BaseModel):
     )
     quick_summary: str = Field(
         ..., 
-        description="2-3 sentence explanation covering the condition, its causes, and potential impact"
+        description="Short plain-language summary of likely condition and risk"
     )
     immediate_action: str = Field(
         ..., 
-        description="Detailed immediate steps to take within 24-48 hours (3-4 specific actions with application rates and timing)"
+        description="Immediate actions in clean short bullet points"
     )
     treatment_steps: str = Field(
         ..., 
-        description="Comprehensive treatment plan with methods, timing, and application details (4-6 detailed steps)"
+        description="Treatment steps in simple bullet format with practical timing"
     )
     what_to_watch: str = Field(
         ..., 
-        description="Key symptoms and progression indicators to monitor, including timeframes (3-4 monitoring points with visual indicators)"
+        description="Simple monitoring checklist with short time windows"
     )
     detailed_analysis: str = Field(
         ..., 
-        description="Complete technical analysis in markdown format including differential diagnosis, pathophysiology, environmental factors, and long-term management. Accessible to serious gardeners."
+        description="Markdown analysis with clear sections and readable language"
     )
 
 
@@ -121,15 +121,15 @@ class EssentialCare(BaseModel):
     """Essential care requirements for plants."""
     light: str = Field(
         ..., 
-        description="Detailed light requirements with specific conditions, duration, and positioning tips"
+        description="Simple light advice with clear duration or placement hint"
     )
     water: str = Field(
         ..., 
-        description="Comprehensive watering guidelines including frequency, amount, seasonal changes, and soil moisture indicators"
+        description="Practical watering guidance in plain language"
     )
     soil: str = Field(
         ..., 
-        description="Specific soil requirements including pH, drainage, nutrients, and recommended mixes or amendments"
+        description="Easy-to-understand soil advice with key do/don't points"
     )
 
 
@@ -141,7 +141,7 @@ class PlantCareLLMResponse(BaseModel):
     )
     quick_overview: str = Field(
         ..., 
-        description="2-3 sentence overview covering the plant's nature, basic needs, and what makes it special"
+        description="Short plain-language overview for beginners"
     )
     essential_care: EssentialCare = Field(
         ..., 
@@ -149,14 +149,14 @@ class PlantCareLLMResponse(BaseModel):
     )
     key_tips: List[str] = Field(
         ..., 
-        description="5 key care tips with specific techniques, timing, measurements, indicators, troubleshooting guidance, and seasonal considerations"
+        description="Exactly 5 concise and practical care tips in simple wording"
     )
     common_problems: List[str] = Field(
         ..., 
-        description="3 common problems with detailed descriptions, causes, and step-by-step solutions"
+        description="Exactly 3 common problems with short and clear fixes"
     )
     detailed_guide: str = Field(
         ..., 
-        description="Comprehensive care guide in markdown format with advanced techniques, seasonal care, propagation, fertilization schedules, pruning guidelines, and troubleshooting. Include specific measurements, timing, visual cues, and professional tips while remaining accessible to dedicated home gardeners."
+        description="Markdown care guide with clear sections and non-technical language"
     )
 

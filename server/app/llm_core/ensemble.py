@@ -11,7 +11,8 @@ _HEADERS = {
 }
 
 # Single active model for lower latency.
-ACTIVE_MODEL_ID = "qwen/qwen3.6-plus:free"
+ACTIVE_MODEL_ID = "qwen/qwen3.5-9b"
+ACTIVE_MODEL_ID = "nemotron-nano-12b-v2-vl:free"
 
 
 
