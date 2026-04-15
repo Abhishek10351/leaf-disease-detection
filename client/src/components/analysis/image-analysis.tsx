@@ -45,6 +45,10 @@ export function ImageAnalysis({
   const [analysisStatus, setAnalysisStatus] = useState<string | null>(null)
   const [uploadedImage, setUploadedImage] = useState<ImageUploadResponse | null>(null)
   const [analysis, setAnalysis] = useState<ImageAnalysisResponse | null>(null)
+  const [baseAnalysis, setBaseAnalysis] = useState<ImageAnalysisResponse | null>(null)
+  const [baseLanguage, setBaseLanguage] = useState<ResponseLanguage>('en')
+  const [translationCache, setTranslationCache] = useState<Partial<Record<ResponseLanguage, ImageAnalysisResponse>>>({})
+  const [isTranslating, setIsTranslating] = useState(false)
   const [highlightResult, setHighlightResult] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sampleUploads, setSampleUploads] = useState<Record<string, ImageUploadResponse>>({})
@@ -89,6 +93,9 @@ export function ImageAnalysis({
       setAnalysisStatus('Preparing diagnosis...')
       await new Promise(resolve => setTimeout(resolve, 180))
       setAnalysis(analysisResponse)
+      setBaseAnalysis(analysisResponse)
+      setBaseLanguage(responseLanguage)
+      setTranslationCache({ [responseLanguage]: analysisResponse })
       onAnalysisComplete?.(analysisResponse)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Analysis failed')
@@ -155,18 +162,59 @@ export function ImageAnalysis({
     return () => clearTimeout(timeout)
   }, [analysis])
 
+  useEffect(() => {
+    const translateFromBase = async () => {
+      if (!baseAnalysis) return
+
+      if (responseLanguage === baseLanguage) {
+        setAnalysis(baseAnalysis)
+        return
+      }
+
+      const cached = translationCache[responseLanguage]
+      if (cached) {
+        setAnalysis(cached)
+        return
+      }
+
+      setIsTranslating(true)
+      setAnalysisStatus('Translating response...')
+      setError(null)
+
+      try {
+        const translated = await AnalysisService.translateImageAnalysis({
+          source_language: baseLanguage,
+          target_language: responseLanguage,
+          response: baseAnalysis,
+        })
+        setTranslationCache((prev) => ({ ...prev, [responseLanguage]: translated }))
+        setAnalysis(translated)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Translation failed')
+      } finally {
+        setIsTranslating(false)
+        setAnalysisStatus(null)
+      }
+    }
+
+    void translateFromBase()
+  }, [responseLanguage, baseAnalysis, baseLanguage, translationCache])
+
   const reset = () => {
     setSelectedFile(null)
     setUploadedImage(null)
     setAnalysis(null)
+    setBaseAnalysis(null)
+    setTranslationCache({})
     setAnalysisStatus(null)
     setHighlightResult(false)
+    setIsTranslating(false)
     setError(null)
   }
 
   const canRunPrimary = Boolean(selectedFile || uploadedImage)
 
-  const primaryButtonLabel = isUploading || isAnalyzing
+  const primaryButtonLabel = isUploading || isAnalyzing || isTranslating
     ? analysisStatus ?? 'Processing...'
     : uploadedImage
       ? 'Analyze Now'
@@ -297,11 +345,11 @@ export function ImageAnalysis({
 
               <Button
                 onClick={handlePrimaryAction}
-                disabled={isUploading || isAnalyzing}
+                disabled={isUploading || isAnalyzing || isTranslating}
                 className="w-full font-medium bg-slate-900 hover:bg-slate-800 text-white"
                 size="default"
               >
-                {isAnalyzing ? (
+                {isAnalyzing || isTranslating ? (
                   <>
                     <Loader size="sm" />
                     {primaryButtonLabel}

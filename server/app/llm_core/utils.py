@@ -1,6 +1,5 @@
 from typing import Optional, Type, TypeVar
 
-from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 
 from app.models.analysis import (
@@ -8,7 +7,7 @@ from app.models.analysis import (
     PlantCareLLMResponse,
     SymptomsAnalysisLLMResponse,
 )
-from .ensemble import get_single_model, get_vision_model
+from .ensemble import ensemble_invoke_text, ensemble_invoke_vision, get_single_model
 
 StructuredModel = TypeVar("StructuredModel", bound=BaseModel)
 
@@ -32,65 +31,53 @@ class LeafAnalysisUtils:
 
     def _invoke_structured_text_with_retry(
         self,
-        model,
         schema: Type[StructuredModel],
         primary_prompt: str,
         fallback_prompt: str,
     ) -> StructuredModel:
         """Run structured text invocation and retry once with tighter output bounds."""
-        structured_model = model.with_structured_output(schema)
         try:
-            response = structured_model.invoke(primary_prompt)
+            response = ensemble_invoke_text(primary_prompt, schema=schema)
             if response is None:
-                raise RuntimeError("Model returned None response")
+                raise RuntimeError("Ensemble returned None response")
             return response
         except Exception as exc:
             if not self._is_truncation_or_parse_error(exc):
                 raise
 
-        response = structured_model.invoke(fallback_prompt)
+        response = ensemble_invoke_text(fallback_prompt, schema=schema)
         if response is None:
-            raise RuntimeError("Model returned None response after retry")
+            raise RuntimeError("Ensemble returned None response after retry")
         return response
 
     def _invoke_structured_vision_with_retry(
         self,
-        model,
         schema: Type[StructuredModel],
         image_base64: str,
         primary_prompt: str,
         fallback_prompt: str,
     ) -> StructuredModel:
         """Run structured vision invocation and retry once with tighter output bounds."""
-        structured_model = model.with_structured_output(schema)
-
-        def _build_message(prompt_text: str) -> list[HumanMessage]:
-            return [
-                HumanMessage(
-                    content=[
-                        {"type": "text", "text": prompt_text},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{image_base64}"
-                            },
-                        },
-                    ]
-                )
-            ]
-
         try:
-            response = structured_model.invoke(_build_message(primary_prompt))
+            response = ensemble_invoke_vision(
+                image_base64=image_base64,
+                prompt=primary_prompt,
+                schema=schema,
+            )
             if response is None:
-                raise RuntimeError("Model returned None response")
+                raise RuntimeError("Ensemble returned None response")
             return response
         except Exception as exc:
             if not self._is_truncation_or_parse_error(exc):
                 raise
 
-        response = structured_model.invoke(_build_message(fallback_prompt))
+        response = ensemble_invoke_vision(
+            image_base64=image_base64,
+            prompt=fallback_prompt,
+            schema=schema,
+        )
         if response is None:
-            raise RuntimeError("Model returned None response after retry")
+            raise RuntimeError("Ensemble returned None response after retry")
         return response
 
     @staticmethod
@@ -194,9 +181,7 @@ class LeafAnalysisUtils:
 
         prompt = "\n\n".join(prompt_parts)
         fallback_prompt = "\n\n".join(fallback_parts)
-        model = get_vision_model()
         return self._invoke_structured_vision_with_retry(
-            model=model,
             schema=ImageAnalysisLLMResponse,
             image_base64=image_base64,
             primary_prompt=prompt,
@@ -239,9 +224,7 @@ class LeafAnalysisUtils:
 
         prompt = "\n\n".join(prompt_parts)
         fallback_prompt = "\n\n".join(fallback_parts)
-        model = get_single_model()
         return self._invoke_structured_text_with_retry(
-            model=model,
             schema=SymptomsAnalysisLLMResponse,
             primary_prompt=prompt,
             fallback_prompt=fallback_prompt,
@@ -279,10 +262,41 @@ class LeafAnalysisUtils:
 
         prompt = "\n\n".join(prompt_parts)
         fallback_prompt = "\n\n".join(fallback_parts)
-        model = get_single_model()
         return self._invoke_structured_text_with_retry(
-            model=model,
             schema=PlantCareLLMResponse,
             primary_prompt=prompt,
             fallback_prompt=fallback_prompt,
         )
+
+    def translate_image_analysis(
+        self,
+        response: ImageAnalysisLLMResponse,
+        source_language: str,
+        target_language: str,
+    ) -> ImageAnalysisLLMResponse:
+        """Translate an existing image analysis response using the final verifier model only."""
+        if source_language == target_language:
+            return response
+
+        language_instruction = self._language_instruction(target_language)
+        simplicity_instruction = self._simplicity_instruction()
+        formatting_instruction = self._formatting_instruction()
+
+        prompt = (
+            "You are a translation and quality verifier for plant analysis responses. "
+            "Translate only narrative fields to the target language while preserving meaning and practical steps. "
+            "Do not change enum fields: health_status, confidence. "
+            "Do not add or remove key recommendations.\n\n"
+            f"Source language: {source_language}\n"
+            f"Target language: {target_language}\n"
+            f"{language_instruction}\n"
+            f"{simplicity_instruction}\n"
+            f"{formatting_instruction}\n\n"
+            f"Input JSON:\n{response.model_dump_json(indent=2)}"
+        )
+
+        model = get_single_model().with_structured_output(ImageAnalysisLLMResponse)
+        translated = model.invoke(prompt)
+        if translated is None:
+            raise RuntimeError("Translation model returned None response")
+        return translated

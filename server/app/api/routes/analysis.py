@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import logging
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 from app.models.analysis import (
     ImageUploadResponse,
     ImageAnalysisRequest,
+    ImageAnalysisTranslationRequest,
     SymptomsAnalysisRequest,
     PlantCareRequest,
     ImageAnalysisLLMResponse,
@@ -48,6 +50,55 @@ def _build_weather_note(weather_context: str) -> str:
             "and disease-risk prioritization."
         )
     return f"Weather note: {first_sentence}."
+
+
+def _normalize_markdown(raw: Optional[str]) -> str:
+    """Normalize imperfect markdown returned by models for stable rendering."""
+    if not raw:
+        return ""
+
+    text = raw.replace("\r\n", "\n")
+
+    # Ensure heading markers are followed by a space.
+    text = re.sub(r"(^|\n)(\s{0,3}#{1,6})([^\s#])", r"\1\2 \3", text)
+    # Start headings on a new line if they appear inline.
+    text = re.sub(r"(\S)\s+(#{1,6}\s)", r"\1\n\n\2", text)
+    # Normalize numbered lists from `1)` to `1.`.
+    text = re.sub(r"(^|\n)(\s*)(\d+)\)\s+", r"\1\2\3. ", text)
+    # Split inline list items into proper lines.
+    text = re.sub(r"(\S)\s+(\d+[\.)]\s+)", r"\1\n\2", text)
+    text = re.sub(r"(\S)\s+([*-]\s+)", r"\1\n\2", text)
+    # Collapse excessive spacing.
+    text = re.sub(r"\n{3,}", "\n\n", text)
+
+    return text.strip()
+
+
+def _sanitize_image_result(result: ImageAnalysisLLMResponse) -> ImageAnalysisLLMResponse:
+    result.immediate_action = _normalize_markdown(result.immediate_action)
+    result.treatment = _normalize_markdown(result.treatment)
+    result.prevention = _normalize_markdown(result.prevention)
+    result.detailed_analysis = _normalize_markdown(result.detailed_analysis)
+    return result
+
+
+def _sanitize_symptoms_result(result: SymptomsAnalysisLLMResponse) -> SymptomsAnalysisLLMResponse:
+    result.immediate_action = _normalize_markdown(result.immediate_action)
+    result.treatment_steps = _normalize_markdown(result.treatment_steps)
+    result.what_to_watch = _normalize_markdown(result.what_to_watch)
+    result.detailed_analysis = _normalize_markdown(result.detailed_analysis)
+    return result
+
+
+def _sanitize_care_result(result: PlantCareLLMResponse) -> PlantCareLLMResponse:
+    result.quick_overview = _normalize_markdown(result.quick_overview)
+    result.essential_care.light = _normalize_markdown(result.essential_care.light)
+    result.essential_care.water = _normalize_markdown(result.essential_care.water)
+    result.essential_care.soil = _normalize_markdown(result.essential_care.soil)
+    result.key_tips = [_normalize_markdown(item) for item in result.key_tips]
+    result.common_problems = [_normalize_markdown(item) for item in result.common_problems]
+    result.detailed_guide = _normalize_markdown(result.detailed_guide)
+    return result
 
 
 router = APIRouter(prefix="/analysis", tags=["leaf-analysis"])
@@ -234,6 +285,7 @@ async def analyze_uploaded_image(
             if cached_doc:
                 cached_response = cached_doc.get("response_data") or {}
                 result = ImageAnalysisLLMResponse.model_validate(cached_response)
+                result = _sanitize_image_result(result)
 
                 user_id = None
                 if hasattr(req.state, "user") and req.state.user:
@@ -254,7 +306,7 @@ async def analyze_uploaded_image(
                                 "location_scope": location_scope,
                                 "image_phash": image_phash,
                                 "cache_hit": True,
-                                "cache_distance": cache_distance,
+                                "cache_distance": int(cache_distance) if cache_distance is not None else None,
                             },
                             "response_data": result.model_dump(),
                             "cache_source_history_id": str(cached_doc.get("_id")),
@@ -288,6 +340,8 @@ async def analyze_uploaded_image(
                 result.quick_summary = f"{result.quick_summary} {weather_note}".strip()
             if not _contains_weather_reference(result.immediate_action):
                 result.immediate_action = f"{result.immediate_action}\n\n{weather_note}".strip()
+
+        result = _sanitize_image_result(result)
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Analysis failed: {str(e)}")
 
@@ -324,6 +378,45 @@ async def analyze_uploaded_image(
     return result
 
 
+@router.post("/translate-image", response_model=ImageAnalysisLLMResponse)
+async def translate_image_analysis(
+    req: Request,
+    request: ImageAnalysisTranslationRequest,
+):
+    """Translate an already generated image analysis response using final verifier model only."""
+    try:
+        result = _get_leaf_analysis().translate_image_analysis(
+            response=request.response,
+            source_language=request.source_language,
+            target_language=request.target_language,
+        )
+        result = _sanitize_image_result(result)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Translation failed: {str(e)}")
+
+    user_id = None
+    if hasattr(req.state, "user") and req.state.user:
+        user_id = req.state.user.email
+
+    try:
+        history_data = {
+            "_id": str(ObjectId()),
+            "analysis_type": "image_translation",
+            "user_id": user_id,
+            "request_data": {
+                "source_language": request.source_language,
+                "target_language": request.target_language,
+            },
+            "response_data": result.model_dump(),
+            "timestamp": datetime.now(),
+        }
+        await req.app.mongodb["analysis_history"].insert_one(history_data)
+    except Exception as e:
+        logger.warning(f"Failed to save image translation history: {str(e)}")
+
+    return result
+
+
 @router.post("/symptoms", response_model=SymptomsAnalysisLLMResponse)
 async def analyze_symptoms(
     req: Request,
@@ -345,6 +438,7 @@ async def analyze_symptoms(
             language=request.language,
             location_context=weather_context.weather_summary if weather_context else None,
         )
+        result = _sanitize_symptoms_result(result)
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Analysis failed: {str(e)}")
 
@@ -397,6 +491,7 @@ async def get_care_tips(
             language=request.language,
             location_context=weather_context.weather_summary if weather_context else None,
         )
+        result = _sanitize_care_result(result)
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Failed to get care tips: {str(e)}")
 

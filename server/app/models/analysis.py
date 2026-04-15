@@ -81,6 +81,13 @@ class ImageAnalysisLLMResponse(BaseModel):
     )
 
 
+class ImageAnalysisTranslationRequest(BaseModel):
+    """Translate an already generated image analysis response."""
+    source_language: Literal["en", "hi", "as", "brx"] = "en"
+    target_language: Literal["en", "hi", "as", "brx"]
+    response: ImageAnalysisLLMResponse
+
+
 class SymptomsAnalysisLLMResponse(BaseModel):
     """Expert plant pathologist analysis based on symptom descriptions."""
     likely_condition: str = Field(

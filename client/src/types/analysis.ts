@@ -62,6 +62,12 @@ export interface ImageAnalysisRequest {
   location?: AnalysisLocation;
 }
 
+export interface ImageAnalysisTranslationRequest {
+  source_language: "en" | "hi" | "as" | "brx";
+  target_language: "en" | "hi" | "as" | "brx";
+  response: ImageAnalysisResponse;
+}
+
 export interface SymptomsAnalysisRequest {
   symptoms_description: string;
   plant_type?: string;

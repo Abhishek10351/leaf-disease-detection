@@ -22,6 +22,7 @@ def phash_hamming_distance(hash_a: str, hash_b: str) -> Optional[int]:
     if not hash_a or not hash_b:
         return None
     try:
-        return imagehash.hex_to_hash(hash_a) - imagehash.hex_to_hash(hash_b)
+        # imagehash subtraction can return numpy scalar types; normalize to builtin int.
+        return int(imagehash.hex_to_hash(hash_a) - imagehash.hex_to_hash(hash_b))
     except Exception:
         return None

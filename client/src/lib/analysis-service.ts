@@ -6,6 +6,7 @@ import {
   SymptomsAnalysisResponse,
   PlantCareResponse,
   ImageAnalysisRequest,
+  ImageAnalysisTranslationRequest,
   SymptomsAnalysisRequest,
   PlantCareRequest,
   UploadedImage,
@@ -52,6 +53,20 @@ export class AnalysisService {
       return response.data;
     } catch (error) {
       throw new Error(getErrorMessage(error, 'Analysis failed'));
+    }
+  }
+
+  /**
+   * Translate a previously generated image analysis response
+   */
+  static async translateImageAnalysis(
+    request: ImageAnalysisTranslationRequest
+  ): Promise<ImageAnalysisResponse> {
+    try {
+      const response = await api.post<ImageAnalysisResponse>('/analysis/translate-image', request);
+      return response.data;
+    } catch (error) {
+      throw new Error(getErrorMessage(error, 'Translation failed'));
     }
   }
 
