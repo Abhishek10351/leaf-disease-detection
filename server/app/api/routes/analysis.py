@@ -26,6 +26,7 @@ from app.models.analysis import (
 from app.core.config import settings
 from app.llm_core import get_leaf_analysis
 from app.utils.image_hashing import compute_phash_hex, phash_hamming_distance
+from app.utils.image_preprocessing import preprocess_leaf_image_bytes
 from app.utils.weather import build_location_weather_context_for_coordinates
 
 
@@ -106,6 +107,8 @@ router = APIRouter(prefix="/analysis", tags=["leaf-analysis"])
 # Create uploads directory if it doesn't exist
 UPLOAD_DIR = Path("uploads/images")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+PREPROCESSED_DIR = Path("uploads/preprocessed")
+PREPROCESSED_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _extract_coordinates(request_with_location) -> tuple[Optional[float], Optional[float]]:
@@ -268,6 +271,35 @@ async def analyze_uploaded_image(
         async with aiofiles.open(file_path, "rb") as f:
             file_content = await f.read()
 
+        processed_file_content = file_content
+        try:
+            processed_file_content, compare_bytes, preprocess_meta = preprocess_leaf_image_bytes(file_content)
+
+            preprocessed_path = PREPROCESSED_DIR / f"{request.image_id}_preprocessed.jpg"
+            compare_path = PREPROCESSED_DIR / f"{request.image_id}_compare.jpg"
+
+            async with aiofiles.open(preprocessed_path, "wb") as processed_out:
+                await processed_out.write(processed_file_content)
+            async with aiofiles.open(compare_path, "wb") as compare_out:
+                await compare_out.write(compare_bytes)
+
+            await req.app.mongodb["uploaded_images"].update_one(
+                {"_id": request.image_id},
+                {
+                    "$set": {
+                        "preprocessed_file_path": str(preprocessed_path),
+                        "preprocess_compare_file_path": str(compare_path),
+                        "preprocess_meta": preprocess_meta,
+                    }
+                },
+            )
+        except Exception as preprocess_error:
+            logger.warning(
+                "OpenCV preprocessing failed for image_id=%s, using raw image: %s",
+                request.image_id,
+                preprocess_error,
+            )
+
         if not image_phash:
             image_phash = compute_phash_hex(file_content)
             await req.app.mongodb["uploaded_images"].update_one(
@@ -325,7 +357,7 @@ async def analyze_uploaded_image(
                 )
                 return result
 
-        image_base64 = base64.b64encode(file_content).decode("utf-8")
+        image_base64 = base64.b64encode(processed_file_content).decode("utf-8")
 
         # Perform analysis
         result = _get_leaf_analysis().analyze_leaf_image(
@@ -365,6 +397,7 @@ async def analyze_uploaded_image(
                 "location_scope": location_scope,
                 "image_phash": image_phash,
                 "cache_hit": False,
+                "preprocessed": image_doc.get("preprocessed_file_path") is not None,
                 "weather_context": weather_context.weather_summary if weather_context else None,
             },
             "response_data": result.model_dump(),
@@ -376,6 +409,58 @@ async def analyze_uploaded_image(
         logger.warning(f"Failed to save analysis history: {str(e)}")
 
     return result
+
+
+@router.get("/images/{image_id}/preprocessed-view")
+async def view_preprocessed_image(
+    req: Request,
+    image_id: str,
+):
+    """View OpenCV preprocessed image generated during analysis."""
+    image_doc = await req.app.mongodb["uploaded_images"].find_one({"_id": image_id})
+    if not image_doc:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    preprocessed_path = image_doc.get("preprocessed_file_path")
+    if not preprocessed_path:
+        raise HTTPException(status_code=404, detail="Preprocessed image not available")
+
+    path = Path(preprocessed_path)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Preprocessed image file missing")
+
+    return FileResponse(
+        path=str(path),
+        media_type="image/jpeg",
+        filename=f"{image_id}_preprocessed.jpg",
+        headers={"Content-Disposition": f"inline; filename=\"{image_id}_preprocessed.jpg\""},
+    )
+
+
+@router.get("/images/{image_id}/preprocess-compare")
+async def view_preprocess_compare(
+    req: Request,
+    image_id: str,
+):
+    """View side-by-side original vs preprocessed comparison image."""
+    image_doc = await req.app.mongodb["uploaded_images"].find_one({"_id": image_id})
+    if not image_doc:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    compare_path = image_doc.get("preprocess_compare_file_path")
+    if not compare_path:
+        raise HTTPException(status_code=404, detail="Preprocess comparison not available")
+
+    path = Path(compare_path)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Preprocess comparison file missing")
+
+    return FileResponse(
+        path=str(path),
+        media_type="image/jpeg",
+        filename=f"{image_id}_compare.jpg",
+        headers={"Content-Disposition": f"inline; filename=\"{image_id}_compare.jpg\""},
+    )
 
 
 @router.post("/translate-image", response_model=ImageAnalysisLLMResponse)
