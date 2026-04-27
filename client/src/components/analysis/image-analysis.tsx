@@ -265,6 +265,7 @@ export function ImageAnalysis({
                           fill
                           className="object-cover"
                           sizes="(max-width: 640px) 100vw, 33vw"
+                          loading={sample.id === 'sample-1' ? 'eager' : 'lazy'}
                         />
                       </div>
                       <div className="p-2 text-xs font-medium text-muted-foreground group-hover:text-foreground">

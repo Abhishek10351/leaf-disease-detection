@@ -31,10 +31,18 @@ const navigationLinks: NavigationLink[] = [
     { title: "Analysis", href: "/analysis" },
 ];
 
+import { useEffect, useState } from "react";
+
 const Header: React.FC = () => {
     const dispatch = useAppDispatch();
     const router = useRouter();
     const { isAuthenticated, user } = useAppSelector((state) => state.auth);
+
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const handleLogout = () => {
         dispatch(logout());
@@ -78,7 +86,7 @@ const Header: React.FC = () => {
                 </NavigationMenu>
 
                 <div className="hidden items-center gap-4 lg:flex">
-                    {isAuthenticated ? (
+                    {mounted && isAuthenticated ? (
                         <div className="flex items-center gap-4">
                             <span className="text-sm text-gray-600">
                                 Welcome, {user?.name || user?.email}
@@ -154,7 +162,7 @@ const Header: React.FC = () => {
                                 ))}
                             </div>
                             <div className="mt-6 flex flex-col gap-4">
-                                {isAuthenticated ? (
+                                {mounted && isAuthenticated ? (
                                     <div className="flex flex-col gap-4">
                                         <span className="text-sm text-gray-600">
                                             Welcome, {user?.name || user?.email}
