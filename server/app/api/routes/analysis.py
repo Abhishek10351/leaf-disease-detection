@@ -20,6 +20,8 @@ from app.models.analysis import (
     SymptomsAnalysisRequest,
     PlantCareRequest,
     ImageAnalysisLLMResponse,
+    ImageAnalysisEnsembleResponse,
+    VisionModelOutput,
     SymptomsAnalysisLLMResponse,
     PlantCareLLMResponse,
 )
@@ -81,6 +83,28 @@ def _sanitize_image_result(result: ImageAnalysisLLMResponse) -> ImageAnalysisLLM
     result.prevention = _normalize_markdown(result.prevention)
     result.detailed_analysis = _normalize_markdown(result.detailed_analysis)
     return result
+
+
+def _normalize_image_response_payload(response_data: dict[str, Any]) -> ImageAnalysisEnsembleResponse:
+    final_payload = response_data.get("final_response")
+    if isinstance(final_payload, dict):
+        final_response = ImageAnalysisLLMResponse.model_validate(final_payload)
+        outputs_payload = response_data.get("model_outputs") or []
+        model_outputs = [
+            VisionModelOutput.model_validate(item)
+            for item in outputs_payload
+            if isinstance(item, dict)
+        ]
+        return ImageAnalysisEnsembleResponse(
+            final_response=_sanitize_image_result(final_response),
+            model_outputs=model_outputs,
+        )
+
+    final_response = ImageAnalysisLLMResponse.model_validate(response_data)
+    return ImageAnalysisEnsembleResponse(
+        final_response=_sanitize_image_result(final_response),
+        model_outputs=[],
+    )
 
 
 def _sanitize_symptoms_result(result: SymptomsAnalysisLLMResponse) -> SymptomsAnalysisLLMResponse:
@@ -234,7 +258,7 @@ async def upload_image(
     )
 
 
-@router.post("/analyze", response_model=ImageAnalysisLLMResponse)
+@router.post("/analyze", response_model=ImageAnalysisEnsembleResponse)
 async def analyze_uploaded_image(
     req: Request,
     request: ImageAnalysisRequest,
@@ -316,8 +340,7 @@ async def analyze_uploaded_image(
             )
             if cached_doc:
                 cached_response = cached_doc.get("response_data") or {}
-                result = ImageAnalysisLLMResponse.model_validate(cached_response)
-                result = _sanitize_image_result(result)
+                result = _normalize_image_response_payload(cached_response)
 
                 user_id = None
                 if hasattr(req.state, "user") and req.state.user:
@@ -360,7 +383,7 @@ async def analyze_uploaded_image(
         image_base64 = base64.b64encode(processed_file_content).decode("utf-8")
 
         # Perform analysis
-        result = _get_leaf_analysis().analyze_leaf_image(
+        result = _get_leaf_analysis().analyze_leaf_image_with_outputs(
             image_base64=image_base64,
             language=request.language,
             location_context=weather_context.weather_summary if weather_context else None,
@@ -368,12 +391,12 @@ async def analyze_uploaded_image(
 
         if weather_context and weather_context.weather_summary:
             weather_note = _build_weather_note(weather_context.weather_summary)
-            if not _contains_weather_reference(result.quick_summary):
-                result.quick_summary = f"{result.quick_summary} {weather_note}".strip()
-            if not _contains_weather_reference(result.immediate_action):
-                result.immediate_action = f"{result.immediate_action}\n\n{weather_note}".strip()
+            if not _contains_weather_reference(result.final_response.quick_summary):
+                result.final_response.quick_summary = f"{result.final_response.quick_summary} {weather_note}".strip()
+            if not _contains_weather_reference(result.final_response.immediate_action):
+                result.final_response.immediate_action = f"{result.final_response.immediate_action}\n\n{weather_note}".strip()
 
-        result = _sanitize_image_result(result)
+        result.final_response = _sanitize_image_result(result.final_response)
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Analysis failed: {str(e)}")
 

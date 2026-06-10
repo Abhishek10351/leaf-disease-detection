@@ -62,11 +62,13 @@ class ChromaManager:
         if name in self.collections:
             return self.collections[name]
         
-        collection = self.client.get_or_create_collection(
-            name=name,
-            metadata=metadata or {},
-            get_or_create=True
-        )
+        if metadata:
+            collection = self.client.get_or_create_collection(
+                name=name,
+                metadata=metadata,
+            )
+        else:
+            collection = self.client.get_or_create_collection(name=name)
         
         self.collections[name] = collection
         logger.info(f"Collection '{name}' ready")
@@ -92,21 +94,36 @@ class ChromaManager:
             ids: Document IDs (optional)
         """
         collection = self.get_or_create_collection(collection_name)
-        
-        collection.add(
-            documents=documents,
-            metadatas=metadatas,
-            embeddings=embeddings,
-            ids=ids,
-            upsert=True
-        )
+
+        payload = {
+            "documents": documents,
+            "metadatas": metadatas,
+            "embeddings": embeddings,
+            "ids": ids,
+        }
+
+        # Chroma API differs across versions: prefer upsert when available.
+        if hasattr(collection, "upsert"):
+            collection.upsert(**payload)
+        else:
+            collection.add(**payload)
         
         logger.info(f"Added {len(documents)} documents to '{collection_name}'")
+
+    def get_collection_documents(
+        self,
+        collection_name: str,
+        where: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Fetch documents and metadata from a collection."""
+        collection = self.get_or_create_collection(collection_name)
+        return collection.get(where=where)
     
     def query(
         self,
         collection_name: str,
-        query_texts: List[str],
+        query_texts: Optional[List[str]] = None,
+        query_embeddings: Optional[List[List[float]]] = None,
         n_results: int = 5,
         where: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
@@ -116,6 +133,7 @@ class ChromaManager:
         Args:
             collection_name: Target collection
             query_texts: Query texts
+            query_embeddings: Query embeddings
             n_results: Number of results
             where: Filter conditions
             
@@ -124,11 +142,20 @@ class ChromaManager:
         """
         collection = self.get_or_create_collection(collection_name)
         
-        results = collection.query(
-            query_texts=query_texts,
-            n_results=n_results,
-            where=where
-        )
+        query_kwargs: Dict[str, Any] = {
+            "n_results": n_results,
+            "where": where,
+        }
+
+        # Prefer explicit embeddings for deterministic retrieval.
+        if query_embeddings is not None:
+            query_kwargs["query_embeddings"] = query_embeddings
+        elif query_texts is not None:
+            query_kwargs["query_texts"] = query_texts
+        else:
+            raise ValueError("Either query_texts or query_embeddings must be provided")
+
+        results = collection.query(**query_kwargs)
         
         return results
     

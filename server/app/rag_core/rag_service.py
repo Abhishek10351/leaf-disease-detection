@@ -3,12 +3,16 @@ High-level RAG service API.
 Provides convenient functions for RAG-enhanced analysis.
 """
 
+import logging
 from typing import Optional, Dict, Any, List
 
 from app.rag_core.chroma_client import get_chroma_manager
 from app.rag_core.embeddings import get_embedding_generator
 from app.rag_core.retrieval import get_rag_retriever, RetrievalResult
 from app.rag_core.langgraph_workflow import AnalysisState, get_rag_workflow
+
+
+logger = logging.getLogger(__name__)
 
 
 class RAGService:
@@ -22,7 +26,7 @@ class RAGService:
     
     # ==================== Knowledge Base Management ====================
     
-    def seed_knowledge_base(self, data: Dict[str, List[Dict[str, str]]]) -> None:
+    def seed_knowledge_base(self, data: Dict[str, List[Dict[str, Any]]]) -> Dict[str, int]:
         """
         Seed knowledge base with disease, treatment, and care data.
         
@@ -31,7 +35,7 @@ class RAGService:
         """
         print("Seeding knowledge base...")
         
-        collection = self.chroma.get_or_create_collection("knowledge_base")
+        self.chroma.get_or_create_collection("knowledge_base")
         
         all_docs = []
         all_ids = []
@@ -105,6 +109,77 @@ class RAGService:
             )
             
             logger.info(f"Seeded {len(all_docs)} documents to knowledge base")
+
+        return {
+            "diseases": len(diseases),
+            "treatments": len(treatments),
+            "care_guides": len(care_guides),
+        }
+
+    def add_disease(self, disease: Dict[str, Any]) -> None:
+        """Add a disease document to the knowledge base."""
+        content = str(disease.get("description", "")).strip()
+        if not content:
+            return
+
+        doc_id = f"disease_{disease.get('id', 'custom')}"
+        embedding = self.embeddings.generate_embedding(content)
+        self.chroma.add_documents(
+            collection_name="knowledge_base",
+            documents=[content],
+            metadatas=[{
+                "type": "disease",
+                "name": disease.get("name", ""),
+                "plant": disease.get("plant", ""),
+                "severity": disease.get("severity", ""),
+                "symptoms": disease.get("symptoms", ""),
+            }],
+            embeddings=[embedding],
+            ids=[doc_id],
+        )
+
+    def add_treatment(self, treatment: Dict[str, Any]) -> None:
+        """Add a treatment document to the knowledge base."""
+        content = str(treatment.get("description", "")).strip()
+        if not content:
+            return
+
+        doc_id = f"treatment_{treatment.get('id', 'custom')}"
+        embedding = self.embeddings.generate_embedding(content)
+        self.chroma.add_documents(
+            collection_name="knowledge_base",
+            documents=[content],
+            metadatas=[{
+                "type": "treatment",
+                "disease": treatment.get("disease", ""),
+                "method": treatment.get("method", ""),
+                "effectiveness": treatment.get("effectiveness", ""),
+                "organic": treatment.get("organic", False),
+            }],
+            embeddings=[embedding],
+            ids=[doc_id],
+        )
+
+    def add_care_guide(self, care: Dict[str, Any]) -> None:
+        """Add a care guide document to the knowledge base."""
+        content = str(care.get("description", "")).strip()
+        if not content:
+            return
+
+        doc_id = f"care_{care.get('id', 'custom')}"
+        embedding = self.embeddings.generate_embedding(content)
+        self.chroma.add_documents(
+            collection_name="knowledge_base",
+            documents=[content],
+            metadatas=[{
+                "type": "care",
+                "plant": care.get("plant", ""),
+                "difficulty": care.get("difficulty", ""),
+                "season": care.get("season", ""),
+            }],
+            embeddings=[embedding],
+            ids=[doc_id],
+        )
     
     def add_analysis_case(
         self,
@@ -153,33 +228,64 @@ class RAGService:
     def search_knowledge_base(
         self,
         query: str,
-        top_k: int = 5,
-        filters: Optional[Dict[str, Any]] = None
+        limit: int = 5,
+        min_similarity: float = 0.3,
+        filter_plant: Optional[str] = None,
+        include_diseases: bool = True,
+        include_treatments: bool = True,
+        include_care: bool = True,
     ) -> List[RetrievalResult]:
         """
         Search knowledge base.
         
         Args:
             query: Search query
-            top_k: Number of results
-            filters: Optional metadata filters
+            limit: Number of results
+            min_similarity: Similarity threshold
+            filter_plant: Optional plant filter
+            include_diseases: Include disease documents
+            include_treatments: Include treatment documents
+            include_care: Include care documents
             
         Returns:
             List of relevant documents
         """
-        if filters:
-            return self.retriever.retrieve_by_filter(
-                query=query,
-                collection_name="knowledge_base",
-                filters=filters,
-                top_k=top_k
-            )
-        else:
-            return self.retriever.retrieve(
-                query=query,
-                collection_name="knowledge_base",
-                top_k=top_k
-            )
+        allowed_types = set()
+        if include_diseases:
+            allowed_types.add("disease")
+        if include_treatments:
+            allowed_types.add("treatment")
+        if include_care:
+            allowed_types.add("care")
+
+        if not allowed_types:
+            return []
+
+        raw_results = self.retriever.retrieve(
+            query=query,
+            collection_name="knowledge_base",
+            top_k=max(limit * 3, limit),
+            min_similarity=min_similarity,
+        )
+
+        filtered: List[RetrievalResult] = []
+        normalized_plant = (filter_plant or "").strip().lower()
+
+        for item in raw_results:
+            item_type = str(item.metadata.get("type", "")).lower()
+            if item_type not in allowed_types:
+                continue
+
+            if normalized_plant:
+                item_plant = str(item.metadata.get("plant", "")).lower()
+                if normalized_plant not in item_plant and item_plant not in normalized_plant:
+                    continue
+
+            filtered.append(item)
+            if len(filtered) >= limit:
+                break
+
+        return filtered
     
     def search_diseases(self, plant: str) -> List[RetrievalResult]:
         """Search for diseases affecting a plant."""
@@ -212,7 +318,8 @@ class RAGService:
         disease_description: str,
         plant_type: Optional[str] = None,
         severity_level: Optional[str] = None,
-        analysis_type: str = "symptoms"
+        analysis_type: str = "symptoms",
+        use_context: bool = True,
     ) -> Dict[str, Any]:
         """
         Perform disease analysis enhanced with RAG.
@@ -228,6 +335,21 @@ class RAGService:
         """
         print(f"Starting RAG-enhanced analysis: {analysis_type}")
         
+        if not use_context:
+            from app.llm_core import get_leaf_analysis
+
+            leaf_analysis = get_leaf_analysis()
+            direct = leaf_analysis.analyze_leaf_symptoms(
+                symptoms_description=disease_description,
+                plant_type=plant_type or "",
+            )
+            payload = direct.model_dump()
+            payload["rag_enhanced"] = False
+            payload["referenced_cases"] = 0
+            payload["retrieved_documents"] = []
+            payload["confidence"] = None
+            return payload
+
         # Create state
         state = AnalysisState(
             disease_description=disease_description,
@@ -246,11 +368,32 @@ class RAGService:
     def get_kb_stats(self) -> Dict[str, Any]:
         """Get knowledge base statistics."""
         stats = self.chroma.get_collection_stats("knowledge_base")
-        
+        docs = self.chroma.get_collection_documents("knowledge_base")
+        metadatas = docs.get("metadatas") or []
+
+        disease_count = 0
+        treatment_count = 0
+        care_count = 0
+        case_count = 0
+
+        for meta in metadatas:
+            doc_type = str((meta or {}).get("type", "")).lower()
+            if doc_type == "disease":
+                disease_count += 1
+            elif doc_type == "treatment":
+                treatment_count += 1
+            elif doc_type == "care":
+                care_count += 1
+            elif doc_type == "case":
+                case_count += 1
+
         return {
-            "total_documents": stats.get("count", 0),
-            "collection": stats.get("name", "unknown"),
-            "metadata": stats.get("metadata", {})
+            "disease_count": disease_count,
+            "treatment_count": treatment_count,
+            "care_guide_count": care_count,
+            "case_history_count": case_count,
+            "total_vectors": stats.get("count", 0),
+            "collections": [stats.get("name", "knowledge_base")],
         }
     
     def clear_knowledge_base(self) -> None:

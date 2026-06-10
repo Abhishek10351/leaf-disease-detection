@@ -4,10 +4,17 @@ from pydantic import BaseModel
 
 from app.models.analysis import (
     ImageAnalysisLLMResponse,
+    ImageAnalysisEnsembleResponse,
+    VisionModelOutput,
     PlantCareLLMResponse,
     SymptomsAnalysisLLMResponse,
 )
-from .ensemble import ensemble_invoke_text, ensemble_invoke_vision, get_single_model
+from .ensemble import (
+    ensemble_invoke_text,
+    ensemble_invoke_vision,
+    ensemble_invoke_vision_with_outputs,
+    get_single_model,
+)
 
 StructuredModel = TypeVar("StructuredModel", bound=BaseModel)
 
@@ -186,6 +193,68 @@ class LeafAnalysisUtils:
             image_base64=image_base64,
             primary_prompt=prompt,
             fallback_prompt=fallback_prompt,
+        )
+
+    def analyze_leaf_image_with_outputs(
+        self,
+        image_base64: str,
+        language: str = "en",
+        location_context: Optional[str] = None,
+    ) -> ImageAnalysisEnsembleResponse:
+        """Analyze a leaf image and return the merged result plus raw ensemble outputs."""
+        language_instruction = self._language_instruction(language)
+        simplicity_instruction = self._simplicity_instruction()
+        formatting_instruction = self._formatting_instruction()
+        location_instruction = self._location_instruction(location_context)
+        prompt_parts = [
+            "You are an expert plant pathologist. Analyze this leaf image and provide a comprehensive diagnosis.",
+            "Include: plant identification, severity, confidence, one primary issue, immediate actions, treatment plan, prevention strategy, and detailed markdown analysis with differential diagnosis.",
+            language_instruction,
+            simplicity_instruction,
+            formatting_instruction,
+        ]
+        fallback_parts = [
+            "You are an expert plant pathologist. Analyze this leaf image and return a valid structured response.",
+            "Keep each field complete but concise so the full response fits safely within output limits.",
+            "Word limits: quick_summary 40-70 words, immediate_action 70-110 words, treatment 90-140 words, prevention 60-100 words, detailed_analysis 160-240 words in markdown with headings: Likely Diagnosis, Why This Matches, Differential Diagnosis, Treatment Plan, Monitoring and Escalation.",
+            language_instruction,
+            simplicity_instruction,
+            formatting_instruction,
+        ]
+        if location_instruction:
+            prompt_parts.append(location_instruction)
+            fallback_parts.append(location_instruction)
+
+        prompt = "\n\n".join(prompt_parts)
+        fallback_prompt = "\n\n".join(fallback_parts)
+
+        try:
+            final_response, raw_outputs = ensemble_invoke_vision_with_outputs(
+                image_base64=image_base64,
+                prompt=prompt,
+                schema=ImageAnalysisLLMResponse,
+            )
+            if final_response is None:
+                raise RuntimeError("Ensemble returned None response")
+            return ImageAnalysisEnsembleResponse(
+                final_response=final_response,
+                model_outputs=[VisionModelOutput(**item) for item in raw_outputs],
+            )
+        except Exception as exc:
+            if not self._is_truncation_or_parse_error(exc):
+                raise
+
+        final_response, raw_outputs = ensemble_invoke_vision_with_outputs(
+            image_base64=image_base64,
+            prompt=fallback_prompt,
+            schema=ImageAnalysisLLMResponse,
+        )
+        if final_response is None:
+            raise RuntimeError("Ensemble returned None response after retry")
+
+        return ImageAnalysisEnsembleResponse(
+            final_response=final_response,
+            model_outputs=[VisionModelOutput(**item) for item in raw_outputs],
         )
 
     def analyze_leaf_symptoms(

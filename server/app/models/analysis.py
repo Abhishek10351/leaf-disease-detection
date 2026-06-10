@@ -81,6 +81,23 @@ class ImageAnalysisLLMResponse(BaseModel):
     )
 
 
+class VisionModelOutput(BaseModel):
+    """Raw output from a single vision ensemble model."""
+    model_id: str = Field(..., description="OpenRouter model identifier")
+    output: str = Field(..., description="Raw text output from the model")
+
+
+class ImageAnalysisEnsembleResponse(BaseModel):
+    """Final image analysis response plus the raw model outputs used to build it."""
+    final_response: ImageAnalysisLLMResponse = Field(
+        ..., description="Final merged and validated image analysis response"
+    )
+    model_outputs: List[VisionModelOutput] = Field(
+        default_factory=list,
+        description="Raw outputs from the individual vision models",
+    )
+
+
 class ImageAnalysisTranslationRequest(BaseModel):
     """Translate an already generated image analysis response."""
     source_language: Literal["en", "hi", "as", "brx"] = "en"

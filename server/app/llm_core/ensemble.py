@@ -29,10 +29,12 @@ TEXT_ENSEMBLE_MODEL_IDS = [
     "meta-llama/llama-3.2-3b-instruct:free",
     "google/gemma-4-26b-a4b-it",
 ]
+
 VISION_ENSEMBLE_MODEL_IDS = [
     "google/gemma-4-26b-a4b-it",
-    "nvidia/nemotron-nano-12b-v2-vl",
+    "mistralai/mistral-small-3.2-24b-instruct",
 ]
+
 FINAL_VERIFIER_MODEL_ID = "qwen/qwen3-235b-a22b-2507"
 
 
@@ -160,6 +162,31 @@ def _run_parallel_vision(prompt: str, image_base64: str) -> list[str]:
     return [item for item in ordered if item.strip()]
 
 
+def _run_parallel_vision_with_metadata(prompt: str, image_base64: str) -> list[tuple[str, str]]:
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    models = list(_get_vision_models())
+    with ThreadPoolExecutor(max_workers=len(models)) as pool:
+        futures = {
+            pool.submit(
+                _invoke_one_vision_model,
+                model,
+                prompt,
+                image_base64,
+                VISION_ENSEMBLE_MODEL_IDS[index],
+            ): index
+            for index, model in enumerate(models)
+        }
+        ordered = [""] * len(models)
+        for future in as_completed(futures):
+            ordered[futures[future]] = future.result()
+
+    return [
+        (VISION_ENSEMBLE_MODEL_IDS[index], output)
+        for index, output in enumerate(ordered)
+    ]
+
+
 def _build_merge_prompt(user_prompt: str, responses: list[str]) -> str:
     numbered_responses = "\n\n".join(
         f"Expert response {index + 1}:\n{response}"
@@ -219,3 +246,18 @@ def ensemble_invoke_vision(
     """Run vision models in parallel, then merge and verify with the final model."""
     responses = _run_parallel_vision(prompt, image_base64)
     return _merge_with_final_model(prompt, responses, schema=schema)
+
+
+def ensemble_invoke_vision_with_outputs(
+    image_base64: str,
+    prompt: str,
+    schema: Optional[Type[StructuredModel]] = None,
+) -> tuple[Any, list[dict[str, str]]]:
+    """Run vision models in parallel and return both the merged result and raw outputs."""
+    raw_outputs = _run_parallel_vision_with_metadata(prompt, image_base64)
+    responses = [output for _, output in raw_outputs]
+    final_response = _merge_with_final_model(prompt, responses, schema=schema)
+    return final_response, [
+        {"model_id": model_id, "output": output}
+        for model_id, output in raw_outputs
+    ]

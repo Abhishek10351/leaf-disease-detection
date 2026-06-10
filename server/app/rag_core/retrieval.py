@@ -64,7 +64,7 @@ class RAGRetriever:
             # Query Chroma
             results = self.chroma.query(
                 collection_name=collection_name,
-                query_texts=[query],
+                query_embeddings=[query_embedding],
                 n_results=top_k * 2  # Get more to filter by threshold
             )
             

@@ -113,8 +113,22 @@ def preprocess_leaf_image_bytes(image_bytes: bytes) -> tuple[bytes, bytes, dict[
     clahe_img = _apply_clahe(resized)
     mask, mask_ratio, used_largest_contour = _leaf_mask(clahe_img)
 
-    isolated = cv2.bitwise_and(clahe_img, clahe_img, mask=mask)
-    processed = cv2.GaussianBlur(isolated, (5, 5), 0)
+    # Keep the original scene visible and enhance leaf regions softly.
+    blurred_enhanced = cv2.GaussianBlur(clahe_img, (5, 5), 0)
+    candidate_enhanced = cv2.addWeighted(resized, 0.35, blurred_enhanced, 0.65, 0)
+
+    soft_mask = cv2.GaussianBlur(mask, (31, 31), 0).astype(np.float32) / 255.0
+    soft_mask = np.expand_dims(soft_mask, axis=2)
+
+    # Limit enhancement strength to avoid over-processing and keep output natural.
+    blend_strength = 0.55
+    weighted_mask = soft_mask * blend_strength
+
+    processed_float = (
+        resized.astype(np.float32) * (1.0 - weighted_mask)
+        + candidate_enhanced.astype(np.float32) * weighted_mask
+    )
+    processed = np.clip(processed_float, 0, 255).astype(np.uint8)
 
     compare_strip = _build_compare_strip(resized, processed)
 
@@ -125,6 +139,7 @@ def preprocess_leaf_image_bytes(image_bytes: bytes) -> tuple[bytes, bytes, dict[
         "resized": bool(resized_flag),
         "mask_ratio": float(mask_ratio),
         "used_largest_contour": bool(used_largest_contour),
+        "blend_strength": float(blend_strength),
         "shape": {
             "height": int(processed.shape[0]),
             "width": int(processed.shape[1]),

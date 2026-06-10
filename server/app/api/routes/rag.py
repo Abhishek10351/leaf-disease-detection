@@ -11,12 +11,14 @@ Endpoints:
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
+import logging
 
 from app.rag_core import RAGService, get_rag_service, KNOWLEDGE_BASE_SEED
 from app.core.security import get_current_user
 from app.models import User
 
 router = APIRouter(prefix="/rag", tags=["RAG"])
+logger = logging.getLogger(__name__)
 
 
 # ============================================================================
@@ -95,15 +97,29 @@ class SeedKBRequest(BaseModel):
 
 def format_retrieved_results(results: List[Any]) -> List[SearchResult]:
     """Convert retrieval results to API response format"""
-    return [
-        SearchResult(
-            id=r.id,
-            content=r.content,
-            metadata=r.metadata,
-            similarity_score=r.similarity_score
+    formatted: List[SearchResult] = []
+    for r in results:
+        if isinstance(r, dict):
+            formatted.append(
+                SearchResult(
+                    id=str(r.get("id", "unknown")),
+                    content=str(r.get("content", "")),
+                    metadata=r.get("metadata", {}) or {},
+                    similarity_score=float(r.get("similarity_score", 0.0)),
+                )
+            )
+            continue
+
+        formatted.append(
+            SearchResult(
+                id=r.id,
+                content=r.content,
+                metadata=r.metadata,
+                similarity_score=r.similarity_score,
+            )
         )
-        for r in results
-    ]
+
+    return formatted
 
 
 # ============================================================================
@@ -130,23 +146,23 @@ async def seed_knowledge_base(
         counts = {}
         
         if request.use_default_seeds:
-            counts = await rag_service.seed_knowledge_base(KNOWLEDGE_BASE_SEED)
+            counts = rag_service.seed_knowledge_base(KNOWLEDGE_BASE_SEED)
             logger.info(f"Seeded KB with defaults: {counts}")
         
         # Add additional data if provided
         if request.additional_diseases:
             for disease in request.additional_diseases:
-                await rag_service.add_disease(disease)
+                rag_service.add_disease(disease)
             counts["diseases"] = counts.get("diseases", 0) + len(request.additional_diseases)
         
         if request.additional_treatments:
             for treatment in request.additional_treatments:
-                await rag_service.add_treatment(treatment)
+                rag_service.add_treatment(treatment)
             counts["treatments"] = counts.get("treatments", 0) + len(request.additional_treatments)
         
         if request.additional_care:
             for care in request.additional_care:
-                await rag_service.add_care_guide(care)
+                rag_service.add_care_guide(care)
             counts["care_guides"] = counts.get("care_guides", 0) + len(request.additional_care)
         
         return {
@@ -173,7 +189,7 @@ async def get_kb_stats(
     - Available collections
     """
     try:
-        stats = await rag_service.get_kb_stats()
+        stats = rag_service.get_kb_stats()
         return KBStatsResponse(**stats)
     
     except Exception as e:
@@ -204,7 +220,7 @@ async def search_knowledge_base(
         import time
         start_time = time.time()
         
-        results = await rag_service.search_knowledge_base(
+        results = rag_service.search_knowledge_base(
             query=request.query,
             limit=request.limit,
             min_similarity=request.min_similarity,
@@ -270,16 +286,21 @@ async def analyze_with_rag(
         
         # Execute RAG analysis
         result = await rag_service.analyze_with_rag(
-            query=analysis_query,
+            disease_description=analysis_query,
             plant_type=request.plant_type,
-            severity=request.severity,
-            use_context=request.use_rag
+            severity_level=request.severity,
+            use_context=request.use_rag,
+            analysis_type="symptoms",
         )
         
         elapsed_ms = (time.time() - start_time) * 1000
         
         # Extract and format results
-        analysis_text = result.get("analysis", "")
+        analysis_text = (
+            result.get("analysis")
+            or result.get("detailed_analysis")
+            or result.get("quick_summary", "")
+        )
         rag_enhanced = result.get("rag_enhanced", False)
         referenced_count = result.get("referenced_cases", 0)
         confidence = result.get("confidence")
@@ -322,7 +343,7 @@ async def rag_health(
     - Knowledge base status
     """
     try:
-        stats = await rag_service.get_kb_stats()
+        stats = rag_service.get_kb_stats()
         return {
             "status": "healthy",
             "rag_ready": stats.get("total_vectors", 0) > 0,
