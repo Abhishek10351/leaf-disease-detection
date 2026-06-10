@@ -19,6 +19,16 @@ export interface ImageAnalysisResponse {
   detailed_analysis: string;
 }
 
+export interface VisionModelOutput {
+    model_id: string;
+    output: string;
+}
+
+export interface ImageAnalysisEnsembleResponse {
+    final_response: ImageAnalysisResponse;
+    model_outputs: VisionModelOutput[];
+}
+
 // Symptoms Analysis Response (matches SymptomsAnalysisLLMResponse from backend)
 export interface SymptomsAnalysisResponse {
   likely_condition: string;
