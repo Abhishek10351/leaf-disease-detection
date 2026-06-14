@@ -35,7 +35,7 @@ VISION_ENSEMBLE_MODEL_IDS = [
     "mistralai/mistral-small-3.2-24b-instruct",
 ]
 
-FINAL_VERIFIER_MODEL_ID = "qwen/qwen3-235b-a22b-2507"
+FINAL_VERIFIER_MODEL_ID = "qwen/qwen3.5-9b"
 
 
 def _require_api_key() -> str:

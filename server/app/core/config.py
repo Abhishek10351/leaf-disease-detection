@@ -25,8 +25,10 @@ class Settings(BaseSettings):
         extra="ignore",
     )
     SECRET_KEY: str = secrets.token_urlsafe(40)
+
     MONGODB_URI: str = "mongodb://localhost:27017"
     MONGODB_DB_NAME: str = "test_db"
+
     OPENROUTER_API_KEY: str
     OPENROUTER_EMBEDDING_MODEL: str = "text-embedding-3-small"
     OPENROUTER_TEXT_MAX_TOKENS: int = 8000
@@ -35,7 +37,7 @@ class Settings(BaseSettings):
     PHASH_CACHE_MAX_CANDIDATES: int = 300
     # 60 minutes * 24 hours * 20 days = 20  days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 20
-    FRONTEND_HOST: str = "http://localhost:3000"
+    # FRONTEND_HOST: str = "http://localhost:3000"
     ENVIRONMENT: Literal["local", "production"] = "local"
 
     BACKEND_CORS_ORIGINS: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = (
