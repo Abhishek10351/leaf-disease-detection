@@ -107,25 +107,6 @@ def _normalize_image_response_payload(response_data: dict[str, Any]) -> ImageAna
     )
 
 
-def _sanitize_symptoms_result(result: SymptomsAnalysisLLMResponse) -> SymptomsAnalysisLLMResponse:
-    result.immediate_action = _normalize_markdown(result.immediate_action)
-    result.treatment_steps = _normalize_markdown(result.treatment_steps)
-    result.what_to_watch = _normalize_markdown(result.what_to_watch)
-    result.detailed_analysis = _normalize_markdown(result.detailed_analysis)
-    return result
-
-
-def _sanitize_care_result(result: PlantCareLLMResponse) -> PlantCareLLMResponse:
-    result.quick_overview = _normalize_markdown(result.quick_overview)
-    result.essential_care.light = _normalize_markdown(result.essential_care.light)
-    result.essential_care.water = _normalize_markdown(result.essential_care.water)
-    result.essential_care.soil = _normalize_markdown(result.essential_care.soil)
-    result.key_tips = [_normalize_markdown(item) for item in result.key_tips]
-    result.common_problems = [_normalize_markdown(item) for item in result.common_problems]
-    result.detailed_guide = _normalize_markdown(result.detailed_guide)
-    return result
-
-
 router = APIRouter(prefix="/analysis", tags=["leaf-analysis"])
 
 # Create uploads directory if it doesn't exist
@@ -210,10 +191,10 @@ async def upload_image(
     if len(file_content) > max_size:
         raise HTTPException(status_code=400, detail="File size too large (max 10MB)")
 
-    try:
-        image_phash = compute_phash_hex(file_content)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Unsupported image payload: {str(e)}")
+    # try:
+    #     image_phash = compute_phash_hex(file_content)
+    # except Exception as e:
+    #     raise HTTPException(status_code=400, detail=f"Unsupported image payload: {str(e)}")
     
     # Generate unique image ID and file path
     image_id = str(ObjectId())
@@ -237,7 +218,6 @@ async def upload_image(
             "file_size": len(file_content),
             "content_type": file.content_type,
             "file_path": str(file_path),
-            "phash": image_phash,
             "user_id": user_id,
             "uploaded_at": datetime.now()
         }
@@ -288,7 +268,7 @@ async def analyze_uploaded_image(
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Image file not found on disk")
 
-    image_phash = image_doc.get("phash")
+    # image_phash = image_doc.get("phash")
 
     try:
         # Read and encode image to base64
@@ -324,61 +304,6 @@ async def analyze_uploaded_image(
                 preprocess_error,
             )
 
-        if not image_phash:
-            image_phash = compute_phash_hex(file_content)
-            await req.app.mongodb["uploaded_images"].update_one(
-                {"_id": request.image_id},
-                {"$set": {"phash": image_phash}},
-            )
-
-        if image_phash:
-            cached_doc, cache_distance = await _find_cached_image_analysis(
-                req=req,
-                image_phash=image_phash,
-                language=request.language,
-                location_scope=location_scope,
-            )
-            if cached_doc:
-                cached_response = cached_doc.get("response_data") or {}
-                result = _normalize_image_response_payload(cached_response)
-
-                user_id = None
-                if hasattr(req.state, "user") and req.state.user:
-                    user_id = req.state.user.email
-
-                try:
-                    await req.app.mongodb["analysis_history"].insert_one(
-                        {
-                            "_id": str(ObjectId()),
-                            "analysis_type": "image",
-                            "image_id": request.image_id,
-                            "user_id": user_id,
-                            "request_data": {
-                                "image_id": request.image_id,
-                                "filename": image_doc["filename"],
-                                "language": request.language,
-                                "location": request.location.model_dump() if request.location else None,
-                                "location_scope": location_scope,
-                                "image_phash": image_phash,
-                                "cache_hit": True,
-                                "cache_distance": int(cache_distance) if cache_distance is not None else None,
-                            },
-                            "response_data": result.model_dump(),
-                            "cache_source_history_id": str(cached_doc.get("_id")),
-                            "timestamp": datetime.now(),
-                        }
-                    )
-                except Exception as history_error:
-                    logger.warning("Failed to save cache-hit history: %s", history_error)
-
-                logger.info(
-                    "pHash cache hit for image_id=%s distance=%s language=%s scope=%s",
-                    request.image_id,
-                    cache_distance,
-                    request.language,
-                    location_scope,
-                )
-                return result
 
         image_base64 = base64.b64encode(processed_file_content).decode("utf-8")
 
@@ -418,7 +343,6 @@ async def analyze_uploaded_image(
                 "language": request.language,
                 "location": request.location.model_dump() if request.location else None,
                 "location_scope": location_scope,
-                "image_phash": image_phash,
                 "cache_hit": False,
                 "preprocessed": image_doc.get("preprocessed_file_path") is not None,
                 "weather_context": weather_context.weather_summary if weather_context else None,

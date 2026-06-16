@@ -1,8 +1,7 @@
-"""OpenRouter ensemble helpers for text and vision analysis.
+"""OpenRouter helpers for text and vision analysis.
 
 Text analysis uses a lightweight primary model with a fallback model on failure.
-Vision analysis can still compare multiple small models, then a final verifier
-model cleans and validates the output.
+Vision analysis now uses the first configured vision model directly.
 """
 
 from __future__ import annotations
@@ -72,6 +71,12 @@ def _get_vision_models() -> tuple[ChatOpenAI, ...]:
 
 
 @lru_cache(maxsize=1)
+def _get_primary_vision_model() -> tuple[ChatOpenAI, str]:
+    model_id = VISION_ENSEMBLE_MODEL_IDS[0]
+    return _build_chat_model(model_id, max_tokens=settings.OPENROUTER_VISION_MAX_TOKENS), model_id
+
+
+@lru_cache(maxsize=1)
 def _get_final_verifier_model() -> ChatOpenAI:
     return _build_chat_model(
         FINAL_VERIFIER_MODEL_ID,
@@ -85,8 +90,8 @@ def get_single_model() -> ChatOpenAI:
 
 
 def get_vision_model() -> ChatOpenAI:
-    """Return the final verifier model for compatibility with older code paths."""
-    return _get_final_verifier_model()
+    """Return the first configured vision model."""
+    return _get_primary_vision_model()[0]
 
 
 def _extract_response_text(response: Any) -> str:
@@ -142,49 +147,15 @@ def _run_text_with_fallback(prompt: str) -> str:
 
 
 def _run_parallel_vision(prompt: str, image_base64: str) -> list[str]:
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-
-    models = list(_get_vision_models())
-    with ThreadPoolExecutor(max_workers=len(models)) as pool:
-        futures = {
-            pool.submit(
-                _invoke_one_vision_model,
-                model,
-                prompt,
-                image_base64,
-                VISION_ENSEMBLE_MODEL_IDS[index],
-            ): index
-            for index, model in enumerate(models)
-        }
-        ordered = [""] * len(models)
-        for future in as_completed(futures):
-            ordered[futures[future]] = future.result()
-    return [item for item in ordered if item.strip()]
+    model, model_id = _get_primary_vision_model()
+    response = _invoke_one_vision_model(model, prompt, image_base64, model_id)
+    return [response] if response.strip() else []
 
 
 def _run_parallel_vision_with_metadata(prompt: str, image_base64: str) -> list[tuple[str, str]]:
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-
-    models = list(_get_vision_models())
-    with ThreadPoolExecutor(max_workers=len(models)) as pool:
-        futures = {
-            pool.submit(
-                _invoke_one_vision_model,
-                model,
-                prompt,
-                image_base64,
-                VISION_ENSEMBLE_MODEL_IDS[index],
-            ): index
-            for index, model in enumerate(models)
-        }
-        ordered = [""] * len(models)
-        for future in as_completed(futures):
-            ordered[futures[future]] = future.result()
-
-    return [
-        (VISION_ENSEMBLE_MODEL_IDS[index], output)
-        for index, output in enumerate(ordered)
-    ]
+    model, model_id = _get_primary_vision_model()
+    response = _invoke_one_vision_model(model, prompt, image_base64, model_id)
+    return [(model_id, response)] if response.strip() else []
 
 
 def _build_merge_prompt(user_prompt: str, responses: list[str]) -> str:
@@ -208,7 +179,7 @@ def _merge_with_final_model(
     schema: Optional[Type[StructuredModel]] = None,
 ) -> Any:
     if not responses:
-        raise RuntimeError("All ensemble models failed to respond.")
+        raise RuntimeError("Vision model failed to respond.")
 
     merge_prompt = _build_merge_prompt(user_prompt, responses)
     verifier = _get_final_verifier_model()
@@ -243,7 +214,7 @@ def ensemble_invoke_vision(
     prompt: str,
     schema: Optional[Type[StructuredModel]] = None,
 ) -> Any:
-    """Run vision models in parallel, then merge and verify with the final model."""
+    """Run the first configured vision model and validate its output."""
     responses = _run_parallel_vision(prompt, image_base64)
     return _merge_with_final_model(prompt, responses, schema=schema)
 
@@ -253,7 +224,7 @@ def ensemble_invoke_vision_with_outputs(
     prompt: str,
     schema: Optional[Type[StructuredModel]] = None,
 ) -> tuple[Any, list[dict[str, str]]]:
-    """Run vision models in parallel and return both the merged result and raw outputs."""
+    """Run the first configured vision model and return its output metadata."""
     raw_outputs = _run_parallel_vision_with_metadata(prompt, image_base64)
     responses = [output for _, output in raw_outputs]
     final_response = _merge_with_final_model(prompt, responses, schema=schema)
